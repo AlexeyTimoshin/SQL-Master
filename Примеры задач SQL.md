@@ -1,0 +1,119 @@
+```SQL
+Дана таблица 
+| id1  | id2   |
+| ---- |  ---- |
+|null  |  1    |
+|2     |  2    |
+|5     |  null |
+|null  |  null |
+| 2    |  3    |
+
+Что выведет запрос? 
+1)  count(*) = 5 (*/1/'id1') - агрегат с нулевым аргументом
+2)  count(1) = 5  
+3)  count(id1) = 3  
+4)  count('id1') = 5  
+5)  count(null) = 0  # NULL != NULL
+6)  count(distinct id1) = 2
+7)  min(id1) = 2
+8)  max(id1) = 5
+9)  sum(id1) = 9
+10) sum(id1+id2) = 9 - сумму по id1
+11) avg(id1) = 3.0
+12) sum(1) = 5  - вернет количество строк
+```
+
+```SQL
+Чем отличаются эти 2 запроса и почему ?
+
+1.
+SELECT * FROM t2
+LEFT JOIN t1 ON  t1.id = t2.id
+AND t1.n IS null
+ 2.
+SELECT * FROM t2
+LEFT JOIN t1 ON  t1.id = t2.id
+WHERE t1.n IS null
+
+1
+останутся все строки t1 + к строкам, у 
+которых t1.n IS null приджойнятся по id строки из 2-ой таблички
+
+2
+сначала приджойнятся по всем айдишникам строки 
+из 1 и 2-ой таблички (обычным лефтом)
+а потом where оставит только те строки, у которых t1.n IS NULL
+```
+
+```SQL
+Отличаются ли запросы: 
+1 select * from table_a a 
+  left outer join table_b on (a.id = b.id and b.some_column = 'X')
+
+2 select * from table_a a 
+  left outer join table_b on (a.id = b.id) where b.some_column = 'X'?
+
+Отличия запросов:
+
+-> в этом случае все строки с левой таблицы будут на месте, 
+но по условию могут быть null из второй таблицы 
+
+-> в этом случае отфильтруются все строки по условию и будет 
+набор данных меньше, чем выше
+```
+
+```SQL
+LEETCODE 1141. User Activity for the Past 30 Days I
+
+```
+
+```SQL
+AMAZON TASKS
+SELECT customer_name
+FROM orders
+EXCEPT
+SELECT o1.customer_name
+FROM orders o1
+join orders o2
+	ON o1.customer_name = o2.customer_name  
+	AND o1.prod_name = 1 
+    AND o2.prod_name = 2
+```
+
+```SQL
+Как найти зарплату сотрудника, которая является n-й по величине в таблице
+
+SELECT salary
+FROM employees
+ORDER BY salary DESC
+LIMIT 2, 1;
+```
+
+```SQL
+Как найти второе по величине значение в столбце
+
+SELECT MAX(salary) AS second_highest_salary
+FROM employees
+WHERE salary < (
+  SELECT MAX(salary) FROM employees
+);
+```
+
+> [!info] 20 вопросов и задач по SQL на собеседовании с ответами — Личный опыт на vc.ru  
+> От автора Telegram-канала Аналитика и Growth mind-set (там публикую еще больше вопросов и тестовых задач с собеседований).  
+> [https://vc.ru/life/443626-20-voprosov-i-zadach-po-sql-na-sobesedovanii-s-otvetami](https://vc.ru/life/443626-20-voprosov-i-zadach-po-sql-na-sobesedovanii-s-otvetami)  
+
+> [!info] 7 вопросов по SQL на собеседовании в Microsoft, Airbnb, Twitter с ответами — Карьера на vc.ru  
+> От автора Telegram-канала Аналитика и Growth mind-set.  
+> [https://vc.ru/hr/504904-7-voprosov-po-sql-na-sobesedovanii-v-microsoft-airbnb-twitter-s-otvetami](https://vc.ru/hr/504904-7-voprosov-po-sql-na-sobesedovanii-v-microsoft-airbnb-twitter-s-otvetami)  
+
+```SQL
+LEETCODE 1661
+SELECT A1.machine_id, 
+			ROUND(AVG(A2.timestamp - A1.timestamp)::numeric, 3) AS processing_time
+FROM Activity AS A1
+JOIN Activity AS A2
+ON A1.machine_id = A2.machine_id AND A1.process_id = A2.process_id 
+AND A1.activity_type = 'start' AND A2.activity_type = 'end'
+GROUP BY A1.machine_id;
+```
