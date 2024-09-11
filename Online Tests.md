@@ -15,9 +15,9 @@
 > Тест на знание SQL на СУБД MySQL для тестировщика  
 > [http://learnqa.ru/sql_test](http://learnqa.ru/sql_test)  
 
-### SHORT SQL TEST
+### TESTS FROM Itproger 
 
-> Тест на знание основ SQL 
+> Тест на знание основ SQL. Доступно 3 уровня (начальный, средний, сложный) 
 > [https://itproger.com/test/sql](https://itproger.com/test/sql)  
 
 ### Учебник
