@@ -161,6 +161,73 @@ ORDER BY 1, title DESC, delivery_price DESC
 
 ## 4.3
 ```sql
+-- 1
+SELECT  author, title, 
+        FLOOR(price) as "Рубли",
+        FLOOR((price - FLOOR(price))*100) as "Копейки"
+FROM book
+ORDER BY 4 DESC
+
+-- 2
+SELECT  CONCAT("Графоман и ", author) as Автор, 
+        CONCAT(title, ". Краткое содержание.") as Название,
+        IF(price*0.4 < 250,  price*0.4, 250) as Цена,
+        IF(amount <= 3, "высокий", IF(amount <= 10, "средний", "низкий")) as Спрос,
+        IF(amount <=2, "очень мало", IF(amount <= 14, "в наличии", "много")) as Наличие
+FROM book
+ORDER BY 3, FIELD(Спрос, 'высокий', 'средний', 'низкий'), 2
+
+-- 3
+WITH all_tab AS
+(
+SELECT name_client, bk.book_id, bu.buy_id, bb.amount, bk.price
+FROM client c
+JOIN buy bu USING(client_id)
+JOIN buy_book bb USING(buy_id)
+JOIN book bk USING(book_id)
+)
+
+SELECT  name_client, 
+        SUM(amount*price) "Общая_сумма_заказов",
+        COUNT(DISTINCT buy_id) "Заказов_всего",
+        SUM(amount) "Книг_всего"
+FROM all_tab
+GROUP BY 1
+HAVING SUM(amount*price) > ( SELECT AVG(sum_) FROM(SELECT SUM(price*amount) sum_ FROM all_tab GROUP BY name_client) tab)
+ORDER BY 1
+
+-- 4
+SELECT  author, title, price, amount, 
+        ROUND((price*amount / SUM(price*amount) OVER()) * 100, 2) income_percent
+FROM book
+ORDER BY income_percent DESC
+
+-- 5
+SELECT  name_author, name_genre,
+        COUNT(book_id) Количество
+FROM author a
+CROSS JOIN genre g
+LEFT JOIN book b ON a.author_id = b.author_id and g.genre_id = b.genre_id
+GROUP BY 1, 2
+ORDER BY 1, 3 DESC, 2
+
+-- 6
+SELECT author Автор, title Название_книги, price Цена, 
+       IF(price <= 600, "ручка", IF(price <= 700, "детская раскраска", "гороскоп")) Подарок
+FROM book
+WHERE price >= 500
+ORDER BY 1, 2
+
+-- 7
+SELECT  author Автор, 
+        MIN(amount) Наименьшее_кол_во, 
+        MAX(amount) Наибольшее_кол_во 
+FROM book
+GROUP BY author
+HAVING SUM(amount) <= 10
+
+-- 8
+
 ```
 
 ## 4.4
