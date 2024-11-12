@@ -176,10 +176,96 @@ GROUP BY date, total_day_orders
 ORDER BY date
 ```
 
-### 5.
+### 5. Для каждого дня, представленного в таблице user_actions, рассчитайте следующие показатели:
+Общее число заказов.  
+Число первых заказов (заказов, сделанных пользователями впервые).  
+Число заказов новых пользователей (заказов, сделанных пользователями в тот же день, когда они впервые воспользовались сервисом).  
+Долю первых заказов в общем числе заказов (долю п.2 в п.1).  
+Долю заказов новых пользователей в общем числе заказов (долю п.3 в п.1).  
 
 ```sql
+with ct as (
+SELECT order_id,
+       time,
+       user_id
+FROM   user_actions
+WHERE  order_id not in (
+                SELECT order_id
+                FROM   user_actions
+                WHERE  action = 'cancel_order'
+                        )
+)
 
+SELECT date,
+       orders,
+       first_orders,
+       new_users_orders,
+       round(first_orders/orders::numeric * 100, 2) first_orders_share,
+       round(new_users_orders/orders::numeric * 100, 2) new_users_orders_share
+FROM   ((SELECT time::date as date,
+                count(order_id) orders
+         FROM   ct
+         GROUP BY time::date) ord join (SELECT date,
+                                      count(user_id) first_orders
+                               FROM   (SELECT user_id,
+                                              min(time::date) as date
+                                       FROM   ct
+                                       GROUP BY user_id) t1
+                               GROUP BY date) f_ord using(date) join
+                                        (SELECT date,
+                                                count(order_id) new_users_orders
+                                         FROM   (
+                                                SELECT  user_id,
+                                                        order_id,
+                                                        action,
+                                                        time::date as date,
+                                                        min(time::date) OVER(PARTITION BY user_id) start_time
+                                                FROM   user_actions
+                                                GROUP BY user_id, time, order_id, action
+                                                ) t1
+                                         WHERE  date = start_time
+                                         and order_id not in (SELECT order_id
+                                                               FROM   user_actions
+                                                               WHERE  action = 'cancel_order')
+                                      GROUP BY 1) n_u using(date)) tab
+
+-- -------------------------------------------------------------------
+
+With not_cancel_ord AS (
+SELECT  time,
+        user_id,
+        order_id
+FROM user_actions
+WHERE order_id NOT IN (
+                SELECT order_id
+                FROM user_actions
+                WHERE action = 'cancel_order'
+                      )
+)
+/*
+(
+SELECT time::date as date, COUNT(order_id) orders
+FROM not_cancel_ord
+GROUP BY time::date
+) total_ord
+
+SELECT  date, 
+        COUNT(user_id) first_orders
+FROM
+(
+SELECT  time::date as date, 
+        user_id, -- посчитать заказы можем только через юзеров
+        MIN(time::date) OVER(partition by user_id) start_time
+FROM not_cancel_ord 
+GROUP BY time::date, user_id
+) t
+WHERE user_id = user_id AND date = start_time
+GROUP BY date
+*/
+
+
+SELECT 
+FROM user_actions
 ```
 
 ### 6.
