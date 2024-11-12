@@ -79,19 +79,107 @@ GROUP BY min_date) dcu
 ON dcc.min_date = dcu.min_date ) fin_tab
 ```
 
-### 3.
+### 3. Для каждого дня, представленного в таблицах user_actions и courier_actions, рассчитайте следующие показатели:
+Число платящих пользователей.  
+Число активных курьеров.  
+Долю платящих пользователей в общем числе пользователей на текущий день.  
+Долю активных курьеров в общем числе курьеров на текущий день.  
 
 ```sql
+SELECT  count_.date, 
+        paying_users, 
+        active_couriers, 
+        ROUND(paying_users::decimal / SUM(count_users) OVER(ORDER BY count_.date) * 100, 2)  paying_users_share,
+        ROUND(active_couriers::decimal / SUM(count_courier) OVER(ORDER BY count_.date) * 100, 2) active_couriers_share
+FROM
+(  SELECT dcc.min_date as date, count_courier, count_users
+   FROM
+   (
+   SELECT min_date, 
+          COUNT(courier_id) count_courier
+    FROM
+        (
+        SELECT courier_id, 
+               min(time::date) min_date 
+        FROM courier_actions
+        GROUP BY courier_id
+        )  courier_min_date
+    GROUP BY min_date
+    )  dcc
+JOIN
+   (
+   SELECT min_date, 
+          COUNT(user_id) count_users
+    FROM 
+        (
+        SELECT  user_id,
+                min(time::date) as min_date
+        FROM user_actions
+        GROUP BY user_id
+        ) min_date_user
+    GROUP BY min_date
+    ) dcu
+ON dcc.min_date = dcu.min_date 
+) count_
+JOIN
+(   SELECT a_c.date, active_couriers, paying_users
+    FROM
+       (
+       SELECT  time::date as date,
+               COUNT(DISTINCT courier_id) active_couriers
+       FROM courier_actions 
+       WHERE order_id IN (
+                       SELECT order_id 
+                       FROM courier_actions 
+                       WHERE  action = 'deliver_order'
+                          )
+       GROUP BY time::date
+      ) a_c
+    JOIN
+       (
+       SELECT  time::date as date,
+               COUNT(DISTINCT user_id) paying_users
+       FROM user_actions
+       WHERE order_id NOT IN ( 
+                        SELECT order_id 
+                        FROM user_actions 
+                        WHERE action = 'cancel_order'
+                            ) 
+       GROUP BY time::date
+       ) p_u 
+    ON a_c.date = p_u.date 
+) activCour_payUsers
+ON count_.date = activCour_payUsers.date
 ```
 
-### 4.
+### 4. Для каждого дня, представленного в таблице user_actions, рассчитайте следующие показатели:
+Долю пользователей, сделавших в этот день всего один заказ, в общем количестве платящих пользователей.  
+Долю пользователей, сделавших в этот день несколько заказов, в общем количестве платящих пользователей.  
 
 ```sql
+SELECT date,
+       round(count(count_orders) filter(WHERE count_orders = 1)::decimal /
+        total_day_orders * 100, 2) single_order_users_share,
+
+       round(count(count_orders) filter(WHERE count_orders > 1)::decimal /
+        total_day_orders * 100, 2) several_orders_users_share
+
+FROM   (SELECT time::date as date,
+               count(user_id) count_orders,
+               count(user_id) OVER(PARTITION BY time::date) total_day_orders
+        FROM   user_actions
+        WHERE  order_id not in (SELECT order_id
+                                FROM   user_actions
+                                WHERE  action = 'cancel_order')
+        GROUP BY time::date, user_id) tab
+GROUP BY date, total_day_orders
+ORDER BY date
 ```
 
 ### 5.
 
 ```sql
+
 ```
 
 ### 6.
