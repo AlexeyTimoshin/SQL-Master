@@ -333,9 +333,67 @@ GROUP BY time::date
 На основе данных в таблице courier_actions для каждого дня рассчитайте, за сколько минут в среднем  
 курьеры доставляли свои заказы.  
 ```sql
+SELECT date,
+       avg(min)::integer minutes_to_deliver
+FROM   (SELECT date,
+               order_id,
+               deliv_time::decimal/60 as min
+        FROM   (SELECT time::date as date,
+                       order_id,
+                       max(extract('epoch' FROM time)) OVER(PARTITION BY order_id) 
+                       - min(extract('epoch' FROM time)) OVER(PARTITION BY order_id) as deliv_time
+                FROM   courier_actions
+                WHERE  order_id not in (SELECT order_id
+                                        FROM   user_actions
+                                        WHERE  action = 'cancel_order')
+                GROUP BY order_id, time) t1
+        GROUP BY date, order_id, deliv_time::decimal/60) t2
+GROUP BY 1
+ORDER BY 1
+------------------------------------------------
+-- авторское решение
+SELECT date,
+       round(avg(delivery_time))::int as minutes_to_deliver
+FROM   (SELECT order_id,
+               max(time::date) as date,
+               extract(epoch FROM max(time) - min(time))/60 as delivery_time
+                -- без понятия как и почему это рабоатет
+        FROM   courier_actions
+        WHERE  order_id not in (SELECT order_id
+                                FROM   user_actions
+                                WHERE  action = 'cancel_order')
+        GROUP BY order_id) t
+GROUP BY date
+ORDER BY date
 ```
 
-### 8.
+### 8.На основе данных в таблице orders для каждого часа в сутках рассчитайте следующие показатели:  
+  Число успешных (доставленных) заказов.  
+  Число отменённых заказов.  
+  Долю отменённых заказов в общем числе заказов (cancel rate).  
 
 ```sql
+SELECT t1.hour,
+       deliver_ord successful_orders,
+       cancel_ord canceled_orders,
+       round(cancel_ord::decimal/(deliver_ord+cancel_ord), 3) cancel_rate
+FROM   (SELECT  date_part('hour', creation_time)::int as hour, 
+                count(order_id) cancel_ord
+        FROM   orders
+        WHERE  order_id in (SELECT order_id
+                            FROM   user_actions
+                            WHERE  action = 'cancel_order')
+        GROUP BY date_part('hour', creation_time)::int
+        ) t1 
+        join (
+              SELECT DATE_PART('hour', creation_time)::INT as hour,
+                    count(order_id) deliver_ord
+              FROM   orders
+              WHERE  order_id not in (SELECT order_id
+                                     FROM   user_actions
+                                     WHERE  action = 'cancel_order')
+              GROUP BY DATE_PART('hour', creation_time)
+              ) t2 using(hour)
+ORDER BY 1
+
 ```
