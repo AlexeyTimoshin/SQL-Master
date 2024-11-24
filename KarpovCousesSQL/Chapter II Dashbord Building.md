@@ -184,53 +184,6 @@ ORDER BY date
 Долю заказов новых пользователей в общем числе заказов (долю п.3 в п.1).  
 
 ```sql
-with ct as (
-SELECT order_id,
-       time,
-       user_id
-FROM   user_actions
-WHERE  order_id not in (
-                SELECT order_id
-                FROM   user_actions
-                WHERE  action = 'cancel_order'
-                        )
-)
-
-SELECT date,
-       orders,
-       first_orders,
-       new_users_orders,
-       round(first_orders/orders::numeric * 100, 2) first_orders_share,
-       round(new_users_orders/orders::numeric * 100, 2) new_users_orders_share
-FROM   ((SELECT time::date as date,
-                count(order_id) orders
-         FROM   ct
-         GROUP BY time::date) ord join (SELECT date,
-                                      count(user_id) first_orders
-                               FROM   (SELECT user_id,
-                                              min(time::date) as date
-                                       FROM   ct
-                                       GROUP BY user_id) t1
-                               GROUP BY date) f_ord using(date) join
-                                        (SELECT date,
-                                                count(order_id) new_users_orders
-                                         FROM   (
-                                                SELECT  user_id,
-                                                        order_id,
-                                                        action,
-                                                        time::date as date,
-                                                        min(time::date) OVER(PARTITION BY user_id) start_time
-                                                FROM   user_actions
-                                                GROUP BY user_id, time, order_id, action
-                                                ) t1
-                                         WHERE  date = start_time
-                                         and order_id not in (SELECT order_id
-                                                               FROM   user_actions
-                                                               WHERE  action = 'cancel_order')
-                                      GROUP BY 1) n_u using(date)) tab
-
--- -------------------------------------------------------------------
-
 With not_cancel_ord AS (
 SELECT  time,
         user_id,
@@ -242,39 +195,143 @@ WHERE order_id NOT IN (
                 WHERE action = 'cancel_order'
                       )
 )
-/*
+
+
+SELECT  total_orders.date,
+        orders,
+        first_orders,
+        new_users_orders,
+        ROUND(first_orders::decimal / orders * 100, 2) as first_orders_share,
+        ROUND(new_users_orders::decimal / orders * 100, 2)  as new_users_orders_share
+FROM
 (
 SELECT time::date as date, COUNT(order_id) orders
 FROM not_cancel_ord
 GROUP BY time::date
-) total_ord
-
+) total_orders -- общее число заказов
+JOIN
+(
 SELECT  date, 
         COUNT(user_id) first_orders
 FROM
+(SELECT MIN(time::date) as date,
+        user_id
+FROM not_cancel_ord
+GROUP BY user_id) min_time_for_orders
+GROUP BY date 
+) t_first_orders_count  USING(date)
+JOIN
 (
-SELECT  time::date as date, 
-        user_id, -- посчитать заказы можем только через юзеров
-        MIN(time::date) OVER(partition by user_id) start_time
-FROM not_cancel_ord 
-GROUP BY time::date, user_id
-) t
-WHERE user_id = user_id AND date = start_time
-GROUP BY date
-*/
+SELECT  date, 
+        COUNT(order_id) new_users_orders
+FROM
+(
+SELECT  time::date date, 
+        user_id,
+        order_id,
+        MIN(time::date) OVER(partition by user_id) min_time
+FROM user_actions -- т.к. нам нужны все даты первых отменённых заказов, которые мы не должны учитывать
+GROUP BY time::date, user_id, order_id
+) prep_tab
+WHERE date = min_time and order_id NOT IN (
+                SELECT order_id
+                FROM user_actions
+                WHERE action = 'cancel_order'
+                      )
+GROUP BY date) new_users USING(date)
 
-
-SELECT 
-FROM user_actions
+---------------------------------------------------------------------
+-- предложенный вариант решения
+SELECT date,
+       orders,
+       first_orders,
+       new_users_orders::int,
+       round(100 * first_orders::decimal / orders, 2) as first_orders_share,
+       round(100 * new_users_orders::decimal / orders, 2) as new_users_orders_share
+FROM   (SELECT creation_time::date as date,
+               count(distinct order_id) as orders
+        FROM   orders
+        WHERE  order_id not in (SELECT order_id
+                                FROM   user_actions
+                                WHERE  action = 'cancel_order')
+           and order_id in (SELECT order_id
+                         FROM   courier_actions
+                         WHERE  action = 'deliver_order')
+        GROUP BY date) t5
+    LEFT JOIN (SELECT first_order_date as date,
+                      count(user_id) as first_orders
+               FROM   (SELECT user_id,
+                              min(time::date) as first_order_date
+                       FROM   user_actions
+                       WHERE  order_id not in (SELECT order_id
+                                               FROM   user_actions
+                                               WHERE  action = 'cancel_order')
+                       GROUP BY user_id) t4
+               GROUP BY first_order_date) t7 using (date)
+    LEFT JOIN (SELECT start_date as date,
+                      sum(orders) as new_users_orders
+               FROM   (SELECT t1.user_id,
+                              t1.start_date,
+                              coalesce(t2.orders, 0) as orders
+                       FROM   (SELECT user_id,
+                                      min(time::date) as start_date
+                               FROM   user_actions
+                               GROUP BY user_id) t1
+                           LEFT JOIN (SELECT user_id,
+                                             time::date as date,
+                                             count(distinct order_id) as orders
+                                      FROM   user_actions
+                                      WHERE  order_id not in (SELECT order_id
+                                                              FROM   user_actions
+                                                              WHERE  action = 'cancel_order')
+                                      GROUP BY user_id, date) t2
+                               ON t1.user_id = t2.user_id and
+                                  t1.start_date = t2.date) t3
+               GROUP BY start_date) t6 using (date)
+ORDER BY date
 ```
 
-### 6.
+### 6. На основе данных в таблицах user_actions, courier_actions и orders для каждого дня рассчитайте следующие показатели:
+    Число платящих пользователей на одного активного курьера.  
+    Число заказов на одного активного курьера.  
 
 ```sql
+With not_cancel_order AS (
+SELECT  time,
+        user_id,
+        order_id
+FROM user_actions
+WHERE order_id NOT IN (
+                SELECT order_id
+                FROM user_actions
+                WHERE action = 'cancel_order'
+                      )
+)
+
+SELECT  fin_tab.date,
+        ROUND(count_users::decimal / count_couriers, 2) users_per_courier,
+        ROUND(count_orders::decimal/ count_couriers, 2) orders_per_courier
+FROM (
+(
+SELECT  time::date as date,
+        COUNT(DISTINCT user_id) count_users,
+        COUNT(order_id) count_orders
+FROM not_cancel_order
+GROUP BY time::date) count_us_cour
+JOIN
+(
+SELECT  time::date as date,
+        count(distinct courier_id) count_couriers
+FROM courier_actions
+WHERE order_id IN (SELECT order_id FROM not_cancel_order)
+GROUP BY time::date
+) count_courier USING(date)
+) fin_tab
 ```
 
-### 7.
-
+### 7. Давайте рассчитаем ещё один полезный показатель, характеризующий качество работы курьеров.
+На основе данных в таблице courier_actions для каждого дня рассчитайте, за сколько минут в среднем  
+курьеры доставляли свои заказы.  
 ```sql
 ```
 
