@@ -45,41 +45,67 @@ SELECT order_id
 FROM user_actions
 WHERE action = 'cancel_order'
 ), 
-users_count AS (
+pay_users as (
 SELECT  time::date as date,
-        COUNT(DISTINCT user_id) cnt_unique_user    
+        COUNT(DISTINCT user_id) count_un_user
+FROM user_actions
+WHERE order_id not IN (SELECT * FROM canc_orders)
+GROUP BY time::date
+), 
+total_orders as (
+SELECT  time::date as date,
+        COUNT(DISTINCT order_id) total_orders
+FROM user_actions
+WHERE order_id not IN (SELECT * FROM canc_orders)
+GROUP BY time::date
+), 
+total_users as (
+SELECT  time::date as date,
+        COUNT(DISTINCT user_id) total_users
 FROM user_actions
 GROUP BY time::date
-)
-
-
-
-SELECT  date, 
-        ROUND(revenue::decimal / count_orders, 2) as aov,
-        ROUND(revenue::decimal / cnt_unique_user, 2) arpu
+), 
+revenue as (
+SELECT date, sum(price) as revenue
 FROM
-(SELECT  date,
-        sum(price) as revenue,
-        count(distinct order_id) count_orders
-FROM
-(
-    (SELECT creation_time::date as date,
-           order_id,
-           UNNEST(product_ids) product_id
+    (SELECT  creation_time::date as date,
+             order_id,
+             UNNEST(product_ids) as product_id
     FROM orders
     WHERE order_id NOT IN (SELECT * FROM canc_orders)
-    ) t_products
-JOIN products USING(product_id) 
-) revenue_tab
-GROUP BY date) rev_day
-JOIN
-(SELECT * FROM users_count) t USING(date)
+    ) product
+LEFT JOIN products USING(product_id)
+GROUP BY date
+)
 
+-- APRU  - revenue / total_users
+-- ARPPU - revenue / paying_users
+-- AOV   - revenue / total_orders
+-- date, arpu, arppu, aov
+
+SELECT  revenue.date,
+        ROUND(revenue::decimal / total_users, 2) as arpu,
+        ROUND(revenue::decimal / count_un_user, 2) arppu,
+        ROUND(revenue::decimal / total_orders, 2) aov
+FROM revenue
+JOIN total_users USING(date)
+JOIN pay_users USING(date)
+JOIN total_orders USING(date)
 ```
 
-### 3.
-
+### 3. По таблицам orders и user_actions для каждого дня рассчитайте следующие показатели:
+  Накопленную выручку на пользователя (Running ARPU).  
+  Накопленную выручку на платящего пользователя (Running ARPPU).  
+  Накопленную выручку с заказа, или средний чек (Running AOV).  
+Пояснение:  
+показатели revenue и orders из предыдущей задачи делаешь накопительными,  
+для подсчета users можешь опираться на задачу 5 (1 урок)  
+показатель first_orders - делаешь накопительным,  
+для подсчета paying_users см. задачу 1 (урок 1) на показатель  
+new_users - делаешь накопительным.  
+И расчет по формулам из предыд. задачи.  
 ```sql
+
 ```
 
 ### 4.
