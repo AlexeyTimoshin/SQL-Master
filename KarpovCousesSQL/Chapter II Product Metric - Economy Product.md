@@ -98,17 +98,82 @@ JOIN total_orders USING(date)
   Накопленную выручку на платящего пользователя (Running ARPPU).  
   Накопленную выручку с заказа, или средний чек (Running AOV).  
 Пояснение:  
-показатели revenue и orders из предыдущей задачи делаешь накопительными,  
-для подсчета users можешь опираться на задачу 5 (1 урок)  
-показатель first_orders - делаешь накопительным,  
-для подсчета paying_users см. задачу 1 (урок 1) на показатель  
-new_users - делаешь накопительным.  
-И расчет по формулам из предыд. задачи.  
-```sql
+Показатели revenue и count_orders из предыдущей задачи считаем накопительно.  
+Так же необходимо рассчитать накопительно платящих пользователей и всех пользователей.  
+Считаем всех новых пользователей по дням - платящих и нет.  
+И расчет по формулам из предыдущей задачи.  
 
+```sql
+WITH canc_orders AS (
+SELECT order_id
+FROM user_actions
+WHERE action = 'cancel_order'
+), 
+revenue as (
+SELECT date, sum(price) as revenue
+FROM
+    (SELECT  creation_time::date as date,
+             order_id,
+             UNNEST(product_ids) as product_id
+    FROM orders
+    WHERE order_id NOT IN (SELECT * FROM canc_orders)
+    ) product
+LEFT JOIN products USING(product_id)
+GROUP BY date
+),
+total_orders as (
+SELECT  time::date as date,
+        COUNT(DISTINCT order_id) total_orders
+FROM user_actions
+WHERE order_id not IN (SELECT * FROM canc_orders)
+GROUP BY time::date
+), 
+new_pay_users as (
+SELECT  date, 
+        COUNT(DISTINCT user_id) new_paying_users
+FROM
+    (SELECT  time::date as date,
+             user_id,
+             min(time::date) OVER(PARTITION by user_id) as start_time
+    FROM user_actions
+    WHERE order_id not IN (SELECT * FROM canc_orders)
+    GROUP BY time::date, user_id
+    ) prep_user
+WHERE date = start_time
+GROUP BY date
+), 
+new_total_users as (
+SELECT  date,
+        COUNT(DISTINCT user_id) new_total_users
+FROM
+    (SELECT  time::date as date,
+             user_id,
+             min(time::date) OVER(PARTITION by user_id) as start_time
+    FROM user_actions
+    GROUP BY time::date, user_id
+    ) prep_all_users
+WHERE date = start_time
+GROUP BY date 
+) 
+
+-- Running APRU  - cum revenue / New_total_users
+-- Running ARPPU - cum revenue / new_paying_users
+-- Running AOV   - cum revenue / total_orders
+
+SELECT  revenue.date,
+        ROUND(SUM(revenue) OVER(ORDER BY date)::decimal / SUM(new_total_users) OVER(ORDER BY date), 2) as running_arpu,
+        ROUND(SUM(revenue) OVER(ORDER BY date)::decimal/ SUM(new_paying_users) OVER(ORDER BY date), 2) running_arppu,
+        ROUND(SUM(revenue) OVER(ORDER BY date)::decimal/ SUM(total_orders) OVER(ORDER BY date), 2) running_aov
+FROM revenue
+JOIN new_total_users USING(date)
+JOIN new_pay_users USING(date)
+JOIN total_orders USING(date)
 ```
 
-### 4.
+### 4. Для каждого дня недели в таблицах orders и user_actions рассчитайте следующие показатели:
+  Выручку на пользователя (ARPU).  
+  Выручку на платящего пользователя (ARPPU).  
+  Выручку на заказ (AOV).  
 
 ```sql
 ```
