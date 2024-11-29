@@ -176,9 +176,73 @@ JOIN total_orders USING(date)
   Выручку на заказ (AOV).  
 
 ```sql
+WITH canc_orders AS (
+SELECT order_id
+FROM user_actions
+WHERE action = 'cancel_order' 
+and time between '2022-08-26' and '2022-09-09'
+), 
+pay_users as (
+SELECT  date_part('isodow', time) weekday_number,
+        to_char(time, 'day') as weekday,
+        COUNT(DISTINCT user_id) count_un_user
+FROM user_actions
+WHERE order_id not IN (SELECT * FROM canc_orders)
+and time between '2022-08-26' and '2022-09-09'
+GROUP BY 1, 2
+), 
+total_orders as (
+SELECT  date_part('isodow', time) weekday_number,
+        to_char(time, 'day') as weekday,
+        COUNT(DISTINCT order_id) total_orders
+FROM user_actions
+WHERE order_id not IN (SELECT * FROM canc_orders)
+and time between '2022-08-26' and '2022-09-09'
+GROUP BY 1, 2
+), 
+total_users as (
+SELECT  date_part('isodow', time) weekday_number,
+        to_char(time, 'day') as weekday,
+        COUNT(DISTINCT user_id) total_users
+FROM user_actions
+WHERE time between '2022-08-26' and '2022-09-09'
+GROUP BY 1, 2
+), 
+revenue as (
+SELECT weekday_number, weekday, sum(price) as revenue
+FROM
+    (SELECT  date_part('isodow', creation_time) weekday_number,
+             to_char(creation_time, 'Day') as weekday,
+             order_id,
+             UNNEST(product_ids) as product_id
+    FROM orders
+    WHERE order_id NOT IN (SELECT * FROM canc_orders)
+        and creation_time between '2022-08-26' and '2022-09-09'
+    ) product
+LEFT JOIN products USING(product_id)
+GROUP BY 1, 2
+)
+
+-- APRU  - revenue / total_users
+-- ARPPU - revenue / paying_users
+-- AOV   - revenue / total_orders
+
+SELECT  revenue.weekday_number,
+        revenue.weekday,
+        ROUND(revenue::decimal / total_users, 2) as arpu,
+        ROUND(revenue::decimal / count_un_user, 2) arppu,
+        ROUND(revenue::decimal / total_orders, 2) aov
+FROM revenue
+JOIN total_users USING(weekday_number)
+JOIN pay_users USING(weekday_number)
+JOIN total_orders USING(weekday_number)
 ```
 
-### 5.
+### 5. Для каждого дня в таблицах orders и user_actions рассчитайте следующие показатели:
+  Выручку, полученную в этот день.  
+  Выручку с заказов новых пользователей, полученную в этот день.  
+  Долю выручки с заказов новых пользователей в общей выручке, полученной за этот день.  
+  Долю выручки с заказов остальных пользователей в общей выручке, полученной за этот день.  
 
 ```sql
 ```
