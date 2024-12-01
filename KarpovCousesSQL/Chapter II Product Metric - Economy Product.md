@@ -245,6 +245,46 @@ JOIN total_orders USING(weekday_number)
   Долю выручки с заказов остальных пользователей в общей выручке, полученной за этот день.  
 
 ```sql
+WITH canc_orders AS (
+SELECT order_id
+FROM user_actions
+WHERE action = 'cancel_order'
+), 
+revenue as (
+SELECT  date, 
+        order_id,
+        sum(price) as revenue
+FROM
+    (SELECT  creation_time::date as date,
+             order_id,
+             UNNEST(product_ids) as product_id
+    FROM orders
+    WHERE order_id NOT IN (SELECT * FROM canc_orders)
+    ) product
+LEFT JOIN products USING(product_id)
+GROUP BY order_id
+), new_users as (
+SELECT  date,
+        user_id,
+        order_id
+FROM
+    (SELECT  time::date as date,
+             user_id,
+             order_id,
+             min(time::date) OVER(PARTITION by user_id) as start_time
+    FROM user_actions
+    GROUP BY time::date, user_id
+    ) prep_all_users
+WHERE order_id NOT IN (SELECT * FROM canc_orders) and
+date = start_time
+) 
+
+SELECT date, sum(order_id) revenue 
+FROM revenue 
+GROUP BY date
+
+
+
 ```
 
 ### 6.
