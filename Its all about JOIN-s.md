@@ -11,7 +11,7 @@
   |**CROSS JOIN**|N * M|N * M|
 
 ### FULL OUTER JOIN
-<details> <summary> ТЫК </summary>
+<details> <summary> Код таблицы </summary>
 
 ```sql
 CREATE Table a (id int, val varchar);
@@ -28,7 +28,36 @@ INSERT INTO b (id, val) VALUES
 (3, 'Cc'), 
 (4, 'Dd'),
 (5, 'Ee');
+
+
+
+CREATE Table a (id int, val varchar);
+INSERT INTO a (id, val) VALUES 
+(1, 'A'),
+(1, 'B'),
+(1, 'C');
+CREATE Table B (id int, val varchar);
+INSERT INTO b (id, val) VALUES 
+(1, 'Aa'),
+(1, 'Bb'),
+(1, 'Cc');
+
+SELECT *
+FROM a 
+FULL OUTER JOIN b ON a.id = b.i
 ```
+id|val|id|val|
+---|---|---|---|
+1| 'A'| 1 | 'Aa' |
+1| 'A'| 1 | 'Bb' |
+1| 'A'| 1 | 'Cc' |
+1| 'B'| 1 | 'Aa' |
+1| 'B'| 1 | 'Bb' |
+1| 'B'| 1 | 'Cc' |
+1| 'C'| 1 | 'Aa' |
+1| 'C'| 1 | 'Bb' |
+1| 'C'| 1 | 'Cc' |
+
 </details>
 
 ```sql
