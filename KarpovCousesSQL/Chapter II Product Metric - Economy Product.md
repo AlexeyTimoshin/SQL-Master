@@ -305,10 +305,49 @@ ORDER BY date
   Долю выручки от продажи этого товара в общей выручке, полученной за весь период.  
 
 ```sql
+with canc_orders as
+(SELECT order_id
+FROM   user_actions
+WHERE  action = 'cancel_order')
+, revenue as
+(SELECT name product_name,
+        sum(price) as revenue
+FROM   (SELECT creation_time::date as date,
+               order_id,
+               unnest(product_ids) as product_id
+        FROM   orders
+        WHERE  order_id not in (SELECT * FROM   canc_orders)) product
+LEFT JOIN products using(product_id)
+GROUP BY name)
 
+SELECT product_name,
+       sum(revenue) revenue,
+       sum(share_in_rev) share_in_revenue
+FROM   (SELECT case
+                when share_in_rev >= 0.5 then product_name
+                else 'ДРУГОЕ' end as product_name,
+               revenue,
+               share_in_rev -- share_in_revenue
+        FROM   (SELECT product_name,
+                       revenue,
+                       round(revenue::decimal / sum(revenue) OVER() * 100, 2) as share_in_rev
+                FROM   revenue) tab) final
+GROUP BY 1
+ORDER BY 2 desc
 ```
 
-### 7. 
+### 7. Для каждого дня в таблицах orders и courier_actions рассчитайте следующие показатели:
+
+Выручку, полученную в этот день.  
+Затраты, образовавшиеся в этот день.  
+Сумму НДС с продажи товаров в этот день.  
+Валовую прибыль в этот день (выручка за вычетом затрат и НДС).  
+Суммарную выручку на текущий день.  
+Суммарные затраты на текущий день.  
+Суммарный НДС на текущий день.  
+Суммарную валовую прибыль на текущий день.  
+Долю валовой прибыли в выручке за этот день (долю п.4 в п.1).  
+Долю суммарной валовой прибыли в суммарной выручке на текущий день (долю п.8 в п.5).  
 
 ```sql
 ```
