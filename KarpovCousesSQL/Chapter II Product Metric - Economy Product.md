@@ -262,7 +262,7 @@ FROM
     WHERE order_id NOT IN (SELECT * FROM canc_orders)
     ) product
 LEFT JOIN products USING(product_id)
-GROUP BY order_id
+GROUP BY date, order_id
 ), new_users as (
 SELECT  date,
         user_id,
@@ -273,26 +273,42 @@ FROM
              order_id,
              min(time::date) OVER(PARTITION by user_id) as start_time
     FROM user_actions
-    GROUP BY time::date, user_id
+    GROUP BY time::date, user_id, order_id
     ) prep_all_users
 WHERE order_id NOT IN (SELECT * FROM canc_orders) and
 date = start_time
 ) 
 
-SELECT date, sum(order_id) revenue 
+SELECt rev_tab.date, 
+        rev_tab.revenue,
+        nu.new_users_rev new_users_revenue, -- new_users_revenue_share, 
+        ROUND(nu.new_users_rev::decimal / rev_tab.revenue * 100, 2) new_users_revenue_share,
+        ROUND((rev_tab.revenue - nu.new_users_rev)::decimal / rev_tab.revenue * 100  , 2) old_users_revenue_share
+FROM
+(SELECT  date, 
+         SUM(revenue) revenue 
 FROM revenue 
-GROUP BY date
-
-
-
+GROUP BY date) rev_tab
+JOIN 
+(
+SELECT  new_users.date,
+        sum(revenue) new_users_rev
+FROM   new_users 
+JOIN   revenue USING(order_id)
+GROUP BY new_users.date
+) nu ON rev_tab.date = nu.date
+ORDER BY date
 ```
 
-### 6.
+### 6. Для каждого товара, представленного в таблице products, за весь период времени в таблице orders рассчитайте следующие показатели:
+  Суммарную выручку, полученную от продажи этого товара за весь период.  
+  Долю выручки от продажи этого товара в общей выручке, полученной за весь период.  
 
 ```sql
+
 ```
 
-### 7.
+### 7. 
 
 ```sql
 ```
