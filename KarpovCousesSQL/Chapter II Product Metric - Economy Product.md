@@ -368,21 +368,32 @@ LEFT JOIN products USING(product_id)
 SELECT date, sum(price) as revenue
 FROM prep_ord_rev
 GROUP BY date
-) 
-/*
-, costs as (
+), 
+prep_costs as (
 -- date_part(month, date) = 8 -> 120000 if 9 -> 150000 
 -- 150rub за каждый заказ после доставки
 -- сборка заказа: август - 140, сент - 115
 -- если больше 5 заказов : август - 400, сент - 500
-)
 SELECT  courier_id,
         order_id, 
         MIN(time::date) start_time,
-        MAX(time::date) end_time,
-FROM courier_actioins
-WHERE oder_id NOT IN (SELECT * FROM canc_orders)
-*/
+        MAX(time::date) end_time
+FROM courier_actions
+WHERE order_id NOT IN (SELECT * FROM canc_orders)
+GROUP BY 1, 2
+), one_day as (
+SELECT  start_time as date,
+        COUNT(order_id) one_day_order
+from prep_costs
+WHERE start_time = end_time
+GROUP BY start_time
+), two_day as (
+SELECT  start_time as date,
+        COUNT(order_id) one_day_order
+from prep_costs
+WHERE start_time != end_time
+GROUP BY start_time
+)
 
 
 ```
