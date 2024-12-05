@@ -350,4 +350,39 @@ ORDER BY 2 desc
 Долю суммарной валовой прибыли в суммарной выручке на текущий день (долю п.8 в п.5).  
 
 ```sql
+WITH canc_orders AS (
+SELECT order_id
+FROM user_actions
+WHERE action = 'cancel_order' 
+), prep_ord_rev as (
+SELECT date, order_id, product_id, price  
+FROM
+    (SELECT  creation_time::date as date,
+             order_id,
+             UNNEST(product_ids) as product_id
+    FROM orders
+    WHERE order_id NOT IN (SELECT * FROM canc_orders)
+    ) product
+LEFT JOIN products USING(product_id)
+), revenue as (
+SELECT date, sum(price) as revenue
+FROM prep_ord_rev
+GROUP BY date
+) 
+/*
+, costs as (
+-- date_part(month, date) = 8 -> 120000 if 9 -> 150000 
+-- 150rub за каждый заказ после доставки
+-- сборка заказа: август - 140, сент - 115
+-- если больше 5 заказов : август - 400, сент - 500
+)
+SELECT  courier_id,
+        order_id, 
+        MIN(time::date) start_time,
+        MAX(time::date) end_time,
+FROM courier_actioins
+WHERE oder_id NOT IN (SELECT * FROM canc_orders)
+*/
+
+
 ```
