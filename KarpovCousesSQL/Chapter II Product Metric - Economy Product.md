@@ -355,7 +355,7 @@ SELECT order_id
 FROM user_actions
 WHERE action = 'cancel_order' 
 ), prep_ord_rev as (
-SELECT date, order_id, product_id, price  
+SELECT date, order_id, product_id, name, price   
 FROM
     (SELECT  creation_time::date as date,
              order_id,
@@ -370,30 +370,77 @@ FROM prep_ord_rev
 GROUP BY date
 ), 
 prep_costs as (
--- date_part(month, date) = 8 -> 120000 if 9 -> 150000 
--- 150rub за каждый заказ после доставки
--- сборка заказа: август - 140, сент - 115
--- если больше 5 заказов : август - 400, сент - 500
-SELECT  courier_id,
-        order_id, 
-        MIN(time::date) start_time,
-        MAX(time::date) end_time
-FROM courier_actions
-WHERE order_id NOT IN (SELECT * FROM canc_orders)
-GROUP BY 1, 2
-), one_day as (
-SELECT  start_time as date,
-        COUNT(order_id) one_day_order
-from prep_costs
-WHERE start_time = end_time
-GROUP BY start_time
-), two_day as (
-SELECT  start_time as date,
-        COUNT(order_id) one_day_order
-from prep_costs
-WHERE start_time != end_time
-GROUP BY start_time
+SELECT  date,
+        
+        CASE -- траты на сборку в один день, доставка в другой.
+            WHEN DATE_PART('month', date) = 8 THEN 120000 + deliv_ord*150 + accp_ord*140
+            WHEN DATE_PART('month', date) = 9 THEN 150000 + deliv_ord*150 + accp_ord*115
+            else 0
+            END as costs 
+          
+FROM    
+    (
+    SELECT  time::date as date,
+            COUNT(order_id) FILTER (WHERE action = 'accept_order') accp_ord,
+            COUNT(order_id) FILTER (WHERE action = 'deliver_order') deliv_ord
+    FROM courier_actions
+    WHERE order_id NOT IN (SELECT * FROM canc_orders)
+    GROUP BY 1) t
+), bonusFor5ord AS (
+SELECT  date, 
+        CASE 
+        WHEN DATE_PART('month', date) = 8 THEN COUNT(cnt_bonus)*400
+        WHEN DATE_PART('month', date) = 9 THEN COUNT(cnt_bonus)*500
+        END as bonus_costs,
+        COUNT(cnt_bonus) total_bonus
+FROM
+    (SELECT  time::date as date,
+            COUNT(courier_id) cnt_bonus
+    FROM courier_actions
+    WHERE order_id NOT IN (SELECT * FROM canc_orders)
+    and action = 'deliver_order'
+    GROUP BY 1, courier_id
+    HAVING COUNT(courier_id) >= 5) tab
+    GROUP BY date
+), nds as (
+SELECT date, SUM(nds) tax
+FROM
+(SELECT  date, 
+        order_id,
+        CASE 
+        WHEN name IN ('сахар', 'сухарики', 'сушки', 'семечки', 
+                'масло льняное', 'виноград', 'масло оливковое', 
+                'арбуз', 'батон', 'йогурт', 'сливки', 'гречка', 
+                'овсянка', 'макароны', 'баранина', 'апельсины', 
+                'бублики', 'хлеб', 'горох', 'сметана', 'рыба копченая', 
+                'мука', 'шпроты', 'сосиски', 'свинина', 'рис', 
+                'масло кунжутное', 'сгущенка', 'ананас', 'говядина', 
+                'соль', 'рыба вяленая', 'масло подсолнечное', 'яблоки', 
+                'груши', 'лепешка', 'молоко', 'курица', 'лаваш', 'вафли', 'мандарины') 
+        THEN ROUND(price::decimal / 110 * 10, 2)
+        ELSE ROUND(price::decimal / 120 * 20, 2)
+        end as nds
+FROM prep_ord_rev) nds_
+GROUP BY date
 )
 
 
+SELECT date, revenue, costs::decimal, tax, 
+       revenue - (costs + tax) as gross_profit,
+       SUM(revenue) OVER(ORDER BY date) total_revenue,  -- ,  gross_profit_ratio, total_gross_profit_ratio
+       SUM(costs) OVER(ORDER BY date) total_costs, 
+       SUM(tax) OVER(ORDER BY date) total_tax,
+       SUM(revenue-(costs + tax)) OVER(ORDER BY date) total_gross_profit,
+       ROUND((revenue-(costs + tax))::decimal / revenue * 100, 2) gross_profit_ratio,
+       ROUND(SUM((revenue-(costs + tax))::decimal) OVER(ORDER BY date) 
+       / SUM(revenue) OVER(ORDER BY date) * 100, 2)  total_gross_profit_ratio
+
+FROM
+    (
+    SELECT date, costs + COALESCE(bonus_costs, 0) as costs, tax, revenue
+    FROM prep_costs 
+    LEFT JOIN bonusFor5ord USING(date)
+    LEFT JOIN nds USING(date)
+    LEFT JOIN revenue USING(date)
+    ) final_tab
 ```
