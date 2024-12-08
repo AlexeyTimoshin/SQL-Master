@@ -192,10 +192,31 @@ ORDER BY 2 DESC
 ### 4. На основе данных в таблице user_actions рассчитайте показатель дневного Retention для всех пользователей, разбив их на когорты по дате первого взаимодействия с нашим приложением.
 
 ```sql
+WITH prep_users AS (
+SELECT  time::date as date,
+        user_id,
+        min(time::date) OVER(PARTITION BY user_id) start_time
+FROM user_actions
+)
+
+SELECT  Date_trunc('month', start_time)::date as start_month,
+        start_time start_date, 
+        ROW_NUMBER() OVER(PARTITION BY start_time ORDER BY date) - 1 as day_number,
+        ROUND(user_in_day / MAX(user_in_day) OVER(PARTITION BY start_time)::decimal, 2) as retention
+        
+FROM
+(   SELECT  start_time, 
+            date,  
+            COUNT(DISTINCT user_id) user_in_day
+    FROM prep_users 
+    GROUP BY start_time, date
+) tab1
+ORDER BY 2, 3
 ```
-### 5.
+### 5. А теперь вернёмся к анализу рекламных кампаний и посчитаем Retention для двух групп пользователей. 
 
 ```sql
+
 ```
 
 ### 6.
