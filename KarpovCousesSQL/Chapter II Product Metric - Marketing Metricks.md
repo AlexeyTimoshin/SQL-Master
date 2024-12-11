@@ -284,9 +284,8 @@ WHERE day_number in (0, 1, 7)
 ### 6. И напоследок давайте выясним, на какой день доход от заказов покупателей, пришедших после первой рекламной кампании, превысил расходы на их привлечение.
 
 ```sql
-
-WITH ct AS (
-SELECT date, order_id, SUM(price) sum_order
+WITH ord_price AS (
+SELECT date, order_id, price
 FROM
 (SELECT creation_time::date as date, 
         order_id, 
@@ -295,16 +294,12 @@ FROM orders
 WHERE order_id NOT IN (SELECT order_id FROM user_actions WHERE action = 'cancel_order') 
 AND creation_time >= '2022-09-01') ord
 JOIN products USING(product_id)
-GROUP BY date, order_id
-)
-
-SELECT  (SUM(sum_order) OVER(PARTITION BY  )) arppu ,
-        ROUND(250000::decimal / COUNT(DISTINCT user_id) OVER(PARTITION BY ads_campaign), 2) as cac
-FROM
-(
-  SELECT CONCAT('Кампания № ', company) ads_campaign, date, user_id, order_id, sum_order
-  FROM
-        (SELECT user_id, order_id,
+), 
+user_comp AS (
+ SELECT date, company, t.user_id, t.order_id, price
+    FROM
+        (
+        SELECT user_id, order_id,
                 CASE
             WHEN user_id in (8631, 8632, 8638, 8643, 8657, 8673, 8706, 8707, 8715, 8723, 8732, 8739, 8741, 
             8750, 8751, 8752, 8770, 8774, 8788, 8791, 8804, 8810, 8815, 8828, 8830, 8845, 
@@ -343,8 +338,26 @@ FROM
         THEN 2
         ELSE 0
         End as company
-    FROM user_actions) t1
-  JOIN ct USING(order_id)
-  WHERE company IN (1, 2)
-) tabb
+    FROM user_actions) t
+JOIN ord_price USING(order_id)
+WHERE company IN (1, 2)
+)
+
+SELECT  concat('Кампания № ', company) ads_campaign, 
+        CONCAT('Day ', (Date_part('day', date) - 1)::int) as day,
+        ROUND(SUM(rev) OVER(PARTITION BY company ORDER BY Date)::decimal  / paying_users, 2) as cumulative_arppu,
+        cac
+FROM
+( 
+SELECT date, company, sum(price) rev
+FROM user_comp
+GROUP BY company, date ) rev_tab
+LEFT JOIN
+
+(
+SELECT  company,
+        COUNT(distinct user_id) paying_users,
+        ROUND(250000.0 / COUNT(DISTINCT user_id), 2) as cac
+FROM user_comp
+GROUP BY company ) cac_tab USING(company) 
 ```
