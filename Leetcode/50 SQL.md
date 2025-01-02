@@ -107,28 +107,98 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
     return res
 ```
 
-#### 10. 
-[link]()
+#### 10. Average Time of Process per Machine
+[link](https://leetcode.com/problems/average-time-of-process-per-machine/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+SELECT a1.machine_id, ROUND(AVG(a2.timestamp - a1.timestamp)::numeric, 3) processing_time
+FROM Activity a1
+JOIN Activity a2 
+ON a1.machine_id = a2.machine_id AND a1.process_id = a2.process_id
+AND a1.activity_type = 'start' and a2.activity_type = 'end'
+GROUP BY 1;
+```
+<details> <summary> Code for Python </summary>
+        
+```python
+import pandas as pd
 
+df = pd.DataFrame(data={
+    'machine_id': [0,0,0,0,1,1,1,1,2,2,2,2],
+    'process_id': [0,0,1,1,0,0,1,1,0,0,1,1],
+    'activity_type': ['start', 'end','start', 'end','start', 'end','start', 'end',
+                      'start', 'end','start', 'end'],
+    'timestamp': [0.712,1.52,3.14,4.12,0.55,1.55,0.43,1.42,4.1,4.512,2.5,5]
+})
+```
+</details>
+
+```python
+import pandas as pd
+
+def get_average_time(activity: pd.DataFrame) -> pd.DataFrame:
+    piv_act = activity.pivot(index=['machine_id', 'process_id'],
+                            columns='activity_type',values='timestamp')
+    piv_act['processing_time'] = piv_act['end'] - piv_act['start']
+    return piv_act.groupby('machine_id').processing_time.mean().round(3).reset_index()
+
+# Chain solution
+def get_average_time(activity: pd.DataFrame) -> pd.DataFrame:
+    return activity.pivot(index=["machine_id", "process_id"], columns='activity_type', values='timestamp')\
+            .groupby("machine_id")\
+            .apply(lambda x: (x['end'] - x['start']).mean().round(3))\
+            .rename("processing_time")\
+            .reset_index()
 ```
 
-#### 11. 
-[link]()
-```sql
+#### 11. Employee Bonus
+[link](https://leetcode.com/problems/employee-bonus/description/?envType=study-plan-v2&envId=top-sql-50)
 
+```sql
+SELECT name, bonus
+FROM employee 
+LEFT JOIN bonus USING(empId)
+WHERE bonus IS NULL OR bonus < 1000
+```
+```python
+import pandas as pd
+
+def employee_bonus(employee: pd.DataFrame, bonus: pd.DataFrame) -> pd.DataFrame:
+    df = employee.merge(bonus, how='left')
+    res = df[(df['bonus'] < 1000) | (df['bonus'].isna())]
+    return res[['name', 'bonus']]
 ```
 
-#### 12. 
-[link]()
+#### 12. Students and Examinations
+[link](https://leetcode.com/problems/students-and-examinations/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+SELECT s.student_id, s.student_name, su.subject_name, COUNT(e.subject_name) attended_exams
+FROM students s
+CROSS JOIN subjects su
+LEFT JOIN examinations e ON s.student_id = e.student_id 
+                        and su.subject_name = e.subject_name
+GROUP BY 1, 2, 3
+ORDER BY 1
+```
+```python
+# Time: O(n) , Space: O(n) 
+import pandas as pd
 
+def students_and_examinations(students: pd.DataFrame, subjects: pd.DataFrame, examinations: pd.DataFrame) -> pd.DataFrame:
+    
+    df = students.merge(subjects, how='cross')
+    examinations.rename(columns={'subject_name':'subject_name2'},inplace=True)
+    df_result=df.merge(examinations, how='left', left_on=['student_id','subject_name'], right_on=['student_id','subject_name2'])
+
+    return df_result.groupby(['student_id','student_name','subject_name'], dropna=False)['subject_name2'].count().reset_index(name='attended_exams')
 ```
 
 #### 13. 
 [link]()
 ```sql
 
+```
+
+```python
 ```
 
 #### 14. 
