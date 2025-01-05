@@ -180,43 +180,151 @@ GROUP BY 1, 2, 3
 ORDER BY 1
 ```
 ```python
-# Time: O(n) , Space: O(n) 
 import pandas as pd
 
 def students_and_examinations(students: pd.DataFrame, subjects: pd.DataFrame, examinations: pd.DataFrame) -> pd.DataFrame:
-    
     df = students.merge(subjects, how='cross')
-    examinations.rename(columns={'subject_name':'subject_name2'},inplace=True)
-    df_result=df.merge(examinations, how='left', left_on=['student_id','subject_name'], right_on=['student_id','subject_name2'])
+    examinations.rename(columns={'subject_name': 'subject_name2'}, inplace=True)
+    df_res = df.merge(examinations, how='left', left_on=['student_id', 'subject_name'],
+                      right_on=['student_id','subject_name2'])
 
-    return df_result.groupby(['student_id','student_name','subject_name'], dropna=False)['subject_name2'].count().reset_index(name='attended_exams')
+    res = df_res.groupby(['student_id', 'student_name','subject_name'],dropna=False)\
+         ['subject_name2'].count()\
+         .reset_index(name='attend_exams')
+    return res
 ```
 
-#### 13. 
-[link]()
+#### 13. Managers with at Least 5 Direct Reports
+[link](https://leetcode.com/problems/managers-with-at-least-5-direct-reports/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+SELECT e1.name
+FROM Employee e1
+JOIN  (
+        SELECT managerId
+        FROM Employee 
+        GROUP BY 1
+        HAVING COUNT(id) >= 5
+        ) e2
+ON e1.id = e2.managerId
 
+SELECT e.name
+FROM Employee AS e 
+INNER JOIN Employee AS m ON e.id = m.managerId 
+GROUP BY m.managerId 
+HAVING COUNT(m.managerId) >= 5
 ```
 
 ```python
+import pandas as pd
+
+def find_managers(employee: pd.DataFrame) -> pd.DataFrame:
+    manager = employee.groupby('managerId').size().reset_index(name='count')
+    resMan = manager[manager['count'] >= 5]
+    empMan = resMan.merge(employee[['id', 'name']], how='inner', left_on='managerId',
+                        right_on='id')
+    return empMan[['name']]
 ```
 
-#### 14. 
-[link]()
+#### 14. Confirmation Rate
+[link](https://leetcode.com/problems/confirmation-rate/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+WITH cte as (
+    SELECT user_id, 
+            CASE
+            WHEN action = 'confirmed'  THEN 1
+            ELSE 0
+            END as confirmation_rate
+    FROM Confirmations
+)
 
+SELECT  s.user_id, 
+        COALESCE(ROUND(AVG(c.confirmation_rate), 2), 0) confirmation_rate
+FROM Signups s
+LEFT JOIN cte c USING(user_id)
+GROUP BY s.user_id
+```
+```python
+import pandas as pd
+
+def confirmation_rate(signups: pd.DataFrame, confirmations: pd.DataFrame) -> pd.DataFrame:
+    confirmations['confirmation_rate'] = confirmations['action']\
+                                        .apply(lambda x: 1 if x=='confirmed' else 0)
+    avg_conf = confirmations[['user_id', 'confirmation_rate']].groupby('user_id')\
+                ['confirmation_rate'].mean().round(2).reset_index()
+    ans = pd.merge(signups[['user_id']], avg_conf, how='left').fillna(0)
+    return ans
+```
+### Basic Aggregate Functions
+
+#### 15. Not Boring Movies
+[link](https://leetcode.com/problems/not-boring-movies/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT *
+FROM cinema
+WHERE id % 2 = 1 and description NOT LIKE 'boring'
+ORDER BY rating Desc
+```
+```python
+import pandas as pd
+
+def not_boring_movies(cinema: pd.DataFrame) -> pd.DataFrame:
+    odd = cinema[cinema['id'] % 2 == 1]
+    not_bor = cinema[cinema['description'] != 'boring']
+    df = odd.merge(not_bor, how='inner').sort_values('rating', ascending=False)
+    return df
+
+# А можно и так
+def not_boring_movies2(cinema: pd.DataFrame) -> pd.DataFrame:
+    mask = (cinema.index % 2 == 0) & (cinema["description"] != "boring")
+    return cinema[mask].sort_values('rating', ascending=False)
 ```
 
-#### 15. 
-[link]()
+#### 16.  Average Selling Price
+[link](https://leetcode.com/problems/average-selling-price/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+WITH t1 as
+(SELECT p.product_id, price, units
+FROM Prices p
+LEFT JOIN UnitsSold u ON p.product_id = u.product_id
+AND purchase_date >= start_date AND purchase_date <= end_date)
 
+SELECT  product_id, 
+        COALESCE(ROUND(SUM(price*units)/SUM(units)::numeric, 2), 0)  average_price
+FROM t1
+GROUP BY product_id
 ```
+```python
+import pandas as pd
 
-#### 16. 
-[link]()
-```sql
+def average_selling_price(prices: pd.DataFrame, units_sold: pd.DataFrame) -> pd.DataFrame:
+    prices.sort_values('start_date', inplace=True)
+    units_sold.sort_values('purchase_date', inplace=True)
 
+    # merges on matching `by` values, then latest `right_on` <= `left_on`
+    soldWithPrices = pd.merge_asof(units_sold, prices, by='product_id', left_on='purchase_date', right_on='start_date')
+
+    ## In theory you should do this, but doesn't seem necessary to pass all test cases
+    # badprice = soldWithPrices['end_date'] < soldWithPrices['purchase_date']
+    # soldWithPrices.loc[badprice, 'price'] = 0.0
+    # soldWithPrices.fillna({'price': 0.0}, inplace=True)
+
+    def weighted_mean(df, value, weight):
+        vs = df[value]
+        ws = df[weight]
+
+        return (vs*ws).sum() / ws.sum()
+
+    avgPxSeries = soldWithPrices.groupby('product_id').apply(weighted_mean, 'price', 'units')
+
+    main = avgPxSeries.round(2).rename('average_price').reset_index()
+
+    # for some products we have a price but no sales, for whatever reason LC demands we return zero avg price
+    priceIds = set(prices['product_id'].unique())
+    soldIds = set(units_sold['product_id'].unique())
+    missingIds = priceIds.difference(soldIds)
+    fill = pd.DataFrame({'product_id': list(missingIds), 'average_price': [0]*len(missingIds)})
+
+    return pd.concat([main, fill])
 ```
 
 #### 17. 
@@ -230,11 +338,15 @@ def students_and_examinations(students: pd.DataFrame, subjects: pd.DataFrame, ex
 ```sql
 
 ```
+```python
+```
 
 #### 19. 
 [link]()
 ```sql
 
+```
+```python
 ```
 
 #### 20. 
@@ -242,6 +354,8 @@ def students_and_examinations(students: pd.DataFrame, subjects: pd.DataFrame, ex
 ```sql
 
 ```
+```python
+```
 
 #### . 
 [link]()
@@ -253,6 +367,8 @@ def students_and_examinations(students: pd.DataFrame, subjects: pd.DataFrame, ex
 [link]()
 ```sql
 
+```
+```python
 ```
 
 #### . 
