@@ -327,16 +327,39 @@ def average_selling_price(prices: pd.DataFrame, units_sold: pd.DataFrame) -> pd.
     return pd.concat([main, fill])
 ```
 
-#### 17. 
-[link]()
+#### 17. Project Employees I
+[link](https://leetcode.com/problems/project-employees-i/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+SELECT project_id,
+        ROUND(AVG(experience_years), 2) average_years
+FROM  project
+JOIN employee USING(employee_id)
+GROUP BY 1
+```
+```python
+import pandas as pd
 
+def project_employees_i(project: pd.DataFrame, employee: pd.DataFrame) -> pd.DataFrame:
+    df = pd.merge(project, employee, on='employee_id')
+    res = df[['project_id', 'experience_years']]\
+            .groupby('project_id').mean().reset_index()\
+            .round(2)\
+            .rename(columns={'experience_years':'average_years'})
+    return res
 ```
 
-#### 18. 
-[link]()
+#### 18. Percentage of Users Attended a Contest
+[link](https://leetcode.com/problems/percentage-of-users-attended-a-contest/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT  contest_id, 
+        ROUND(COUNT(contest_id)::numeric/t1.cnt_user, 4)*100 percentage
+FROM Register
+CROSS JOIN (
+    SELECT COUNT(user_id) cnt_user
+    FROM  Users
+) t1
+GROUP BY 1, t1.cnt_user
+ORDER BY 2 DESC, 1
 ```
 ```python
 ```
