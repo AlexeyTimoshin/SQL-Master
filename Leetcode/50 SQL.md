@@ -353,6 +353,8 @@ def project_employees_i(project: pd.DataFrame, employee: pd.DataFrame) -> pd.Dat
 ```sql
 SELECT  contest_id, 
         ROUND(COUNT(contest_id)::numeric/t1.cnt_user, 4)*100 percentage
+        -- если кол-во контекстов == кол-ву юзеров то 1
+        -- иначе кол-во участников на контекст к общему числу их
 FROM Register
 CROSS JOIN (
     SELECT COUNT(user_id) cnt_user
@@ -362,18 +364,45 @@ GROUP BY 1, t1.cnt_user
 ORDER BY 2 DESC, 1
 ```
 ```python
+import pandas as pd
+
+def users_percentage(users: pd.DataFrame, register: pd.DataFrame) -> pd.DataFrame:
+    df = register.groupby('contest_id', as_index=False)\
+        .agg(count_user=('user_id', 'nunique'))
+    df['percentage'] = (df['count_user']/len(users)*100).round(2)
+    df = df[['contest_id', 'percentage']].sort_values(by=['percentage','contest_id'],
+                                          ascending=[False, True])
+    return df
 ```
 
-#### 19. 
-[link]()
+#### 19. Queries Quality and Percentage
+[link](https://leetcode.com/problems/queries-quality-and-percentage/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT  query_name,
+        ROUND(AVG((rating/position::numeric)), 2) quality,
+        ROUND(AVG(CASE WHEN rating < 3 THEN 1 ELSE 0 END)*100, 2) poor_query_percentage 
+FROM Queries 
+WHERE query_name IS NOT NULL
+GROUP BY query_name 
 ```
 ```python
+import pandas as pd
+
+def queries_stats(queries: pd.DataFrame) -> pd.DataFrame:
+    queries['quality'] = queries['rating']/queries['position']
+    # вернёт булеву маску, а *100 сделает 100 и 0
+    queries['poor_query_percentage'] = (queries['rating'] < 3) * 100
+    res = queries.groupby('query_name', as_index=False)\
+        [['quality','poor_query_percentage']]\
+        .mean()
+    # для точности надо добавить 1e-10
+    # иначе тесты не пройдут
+    res[['quality', 'poor_query_percentage']] += 1e-10
+    return res.round(2)
 ```
 
-#### 20. 
-[link]()
+#### 20. Monthly Transactions I
+[link](https://leetcode.com/problems/monthly-transactions-i/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
 
 ```
