@@ -404,14 +404,83 @@ def queries_stats(queries: pd.DataFrame) -> pd.DataFrame:
 #### 20. Monthly Transactions I
 [link](https://leetcode.com/problems/monthly-transactions-i/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+SELECT  SUBSTRING(DATE_TRUNC('month', trans_date)::text FROM 1 for 7) as month,
+        country, 
+        COUNT(id) trans_count,
+        COUNT(state) FILTER(WHERE state='approved') approved_count,
+        SUM(amount) trans_total_amount,
+        COALESCE(SUM(amount) - SUM(amount) FILTER(WHERE state='declined'), SUM(amount))  approved_total_amount 
+FROM Transactions
+GROUP BY 1, 2 
+```
+```python
+import pandas as pd
+import numpy as np
+
+def monthly_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
+    transactions['approved'] = np.where(transactions['state'] == 'approved', transactions['amount'], np.nan)
+    transactions['month'] = transactions['trans_date'].dt.strftime("%Y-%m")
+    return transactions.groupby(['month', 'country']).agg(
+        trans_count=('state', 'count'),
+        approved_count=('approved', 'count'),
+        trans_total_amount=('amount', 'sum'),
+        approved_total_amount=('approved', 'sum')
+    ).reset_index()
+```
+
+#### 21. Immediate Food Delivery II
+[link](https://leetcode.com/problems/immediate-food-delivery-ii/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT ROUND(
+    SUM(
+        CASE
+        WHEN f_ord = f_del THEN 1 
+        ELSE 0
+        END
+    )*100::numeric / COUNT(customer_id), 2) immediate_percentage  
+FROM
+(SELECT  customer_id,
+         MIN(order_date) f_ord,
+         MIN("customer_pref_delivery_date") f_del
+FROM Delivery
+GROUP BY 1) t1
+```
+```python
+import pandas as pd
+
+def immediate_food_delivery(delivery: pd.DataFrame) -> pd.DataFrame:
+    # Найти минимальные даты можно и так
+    df = delivery.groupby("customer_id").min()
+    # Найдем совпадения по датам
+    df1 = df[df["order_date"] == df["customer_pref_delivery_date"]]
+    # Используем len df-ов чтобы найти нужный %
+    # Ну и соберём дф
+    return pd.DataFrame({"immediate_percentage":[len(df1)/len(df)*100]}).round(2)
+```
+
+#### 22. Game Play Analysis IV
+[link](https://leetcode.com/problems/game-play-analysis-iv/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT ROUND(
+    COUNT(player_id)::decimal /
+    (SELECT COUNT(DISTINCT player_id) FROM Activity), 2) fraction
+FROM Activity
+WHERE (player_id, event_date) IN (
+    SELECT player_id, MIN(event_date) + 1
+    FROM Activity
+    GROUP BY player_id
+) 
+```
+```python
+
+```
+
+#### . 
+[link]()
+```sql
 
 ```
 ```python
-```
-
-#### . 
-[link]()
-```sql
 
 ```
 
@@ -421,17 +490,6 @@ def queries_stats(queries: pd.DataFrame) -> pd.DataFrame:
 
 ```
 ```python
-```
-
-#### . 
-[link]()
-```sql
-
-```
-
-#### . 
-[link]()
-```sql
 
 ```
 
