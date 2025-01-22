@@ -254,7 +254,7 @@ def confirmation_rate(signups: pd.DataFrame, confirmations: pd.DataFrame) -> pd.
     ans = pd.merge(signups[['user_id']], avg_conf, how='left').fillna(0)
     return ans
 ```
-### Basic Aggregate Functions
+### BASIC AGGREGATE FUNCTIONS
 
 #### 15. Not Boring Movies
 [link](https://leetcode.com/problems/not-boring-movies/description/?envType=study-plan-v2&envId=top-sql-50)
@@ -472,24 +472,38 @@ WHERE (player_id, event_date) IN (
 ) 
 ```
 ```python
+import pandas as pd
 
+def gameplay_analysis(activity: pd.DataFrame) -> pd.DataFrame:
+    # создадим оконоку и найдём первый день
+    activity['first_day'] = activity.groupby('player_id').event_date.transform('min')
+
+    # создадим дф со следущим днём используя pd.DateOffset(1)
+    sec_day = activity.loc[activity['first_day'] + pd.DateOffset(1) == activity['event_date']]
+
+    # используем атрибут shape[0] (кол-во строк) и посчитаем уникальных пользователей через nunique
+    return pd.DataFrame({'fraction': [sec_day.shape[0] / activity.player_id.nunique()]}).round(2)
 ```
 
-#### . 
-[link]()
-```sql
+### SORTING AND GROUPING
 
+#### 23. Number of Unique Subjects Taught by Each Teacher
+[link](https://leetcode.com/problems/number-of-unique-subjects-taught-by-each-teacher/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT teacher_id, COUNT(DISTINCT subject_id) cnt
+FROM Teacher
+GROUP BY 1
 ```
 ```python
-
+import pandas as pd
+def count_unique_subjects(teacher: pd.DataFrame) -> pd.DataFrame:
+    return teacher.groupby('teacher_id', as_index=False).agg(cnt=('subject_id', 'nunique'))
 ```
 
-#### . 
-[link]()
+#### 24. User Activity for the Past 30 Days I
+[link](https://leetcode.com/problems/user-activity-for-the-past-30-days-i/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
 
-```
-```python
 
 ```
 
