@@ -647,14 +647,45 @@ GROUP BY 1, 2
 ORDER BY 1
 ```
 ```python3
+import pandas as pd
+
+def count_employees(employees: pd.DataFrame) -> pd.DataFrame:
+    df = employees.merge(employees, left_on='employee_id', right_on='reports_to')
+    df = df.groupby(['employee_id_x','name_x'], as_index=False)\
+        .agg( reports_count=('name_y', 'count'),
+              average_age=('age_y', 'mean'))\
+        .rename(columns={'employee_id_x': 'employee_id',
+                         'name_x': 'name'})\
+
+    df['average_age'] += 1e-10
+    df = df.round(0)
+    return df
 ```
 
-#### . 
-[link]()
+#### 31. Primary Department for Each Employee 
+[link](https://leetcode.com/problems/primary-department-for-each-employee/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+(SELECT employee_id, department_id
+FROM Employee
+WHERE primary_flag = 'Y')
+UNION
+(SELECT employee_id, department_id
+FROM Employee
+WHERE employee_id IN
+        (SELECT employee_id
+        FROM Employee
+        GROUP BY 1
+        HAVING COUNT(employee_id) = 1)
+)
 ```
 ```python3
+import pandas as pd
+
+def find_primary_department(employee: pd.DataFrame) -> pd.DataFrame:
+    mask_y = employee[['employee_id', 'department_id']][employee['primary_flag'] == 'Y']
+    mask_2 = employee.groupby('employee_id').count().reset_index().rename(columns={'department_id':'count_dep'})
+    mask_2 = mask_2[['employee_id']][mask_2['count_dep'] == 1]
+    return pd.concat([mask_y, mask_2.merge(employee)]).iloc[:, :2]
 ```
 
 #### . 
