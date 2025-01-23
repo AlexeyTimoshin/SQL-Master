@@ -612,24 +612,39 @@ def biggest_single_number(my_numbers: pd.DataFrame) -> pd.DataFrame:
 
 #### 29. Customers Who Bought All Products
 [link](https://leetcode.com/problems/customers-who-bought-all-products/?envType=study-plan-v2&envId=top-sql-50)
+
 ```sql
 SELECT customer_id
 FROM
-(Select  customer_id,
-        COUNT(Distinct product_key) prd_key
+(SELECT  customer_id,
+         COUNT(DISTINCT product_key) prd_count
 FROM Customer
 GROUP BY 1) t1
-JOIN  (SELECT COUNT(*) prd_key FROM Product) t2
-USING(prd_key)
-WHERE t1.prd_key = t2.prd_key
+JOIN  (SELECT COUNT(*) prd_count FROM Product) t2
+USING(prd_count)
+WHERE t1.prd_count = t2.prd_count
 ```
 ```python3
+import pandas as pd
+
+def find_customers(customer: pd.DataFrame, product: pd.DataFrame) -> pd.DataFrame:
+    df = customer.groupby('customer_id', as_index=False).product_key.nunique()
+    return df[['customer_id']][df['product_key'] == len(product)]
 ```
 
-#### . 
-[link]()
-```sql
+### ADVANCED SELECT AND JOINS
 
+#### 30. The Number of Employees Which Report to Each Employee
+[link](https://leetcode.com/problems/the-number-of-employees-which-report-to-each-employee/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT  e1.employee_id, e1.name,
+        COUNT(e2.employee_id) reports_count,
+        ROUND(AVG(e2.age), 2)::integer average_age 
+FROM Employees e1 
+JOIN Employees e2 
+ON e1.employee_id = e2.reports_to
+GROUP BY 1, 2
+ORDER BY 1
 ```
 ```python3
 ```
