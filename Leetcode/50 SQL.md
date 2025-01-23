@@ -588,18 +588,40 @@ def count_followers(followers: pd.DataFrame) -> pd.DataFrame:
             .sort_values('user_id', ascending=True)
 ```
 
-#### . 
-[link]()
+#### 28. Biggest Single Number
+[link](https://leetcode.com/problems/biggest-single-number/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+WITH prep_tab as
+(
+SELECT num
+FROM myNumbers
+GROUP BY 1
+HAVING COUNT(*) = 1
+)
 
+SELECT COALESCE(MAX(num), NULL) num
+FROM prep_tab
 ```
 ```python3
+import pandas as pd
+
+def biggest_single_number(my_numbers: pd.DataFrame) -> pd.DataFrame:
+    df = my_numbers.num.drop_duplicates(keep=False)
+    return pd.DataFrame({'num': [max(df, default=None)]})
 ```
 
-#### . 
-[link]()
+#### 29. Customers Who Bought All Products
+[link](https://leetcode.com/problems/customers-who-bought-all-products/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT customer_id
+FROM
+(Select  customer_id,
+        COUNT(Distinct product_key) prd_key
+FROM Customer
+GROUP BY 1) t1
+JOIN  (SELECT COUNT(*) prd_key FROM Product) t2
+USING(prd_key)
+WHERE t1.prd_key = t2.prd_key
 ```
 ```python3
 ```
