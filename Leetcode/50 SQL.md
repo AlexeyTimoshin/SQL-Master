@@ -503,8 +503,89 @@ def count_unique_subjects(teacher: pd.DataFrame) -> pd.DataFrame:
 #### 24. User Activity for the Past 30 Days I
 [link](https://leetcode.com/problems/user-activity-for-the-past-30-days-i/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+SELECT activity_date AS day, COUNT(DISTINCT user_id) active_users 
+FROM Activity
+WHERE activity_date between '2019-06-28' AND '2019-07-27'
+GROUP BY activity_date;
+```
+```python3
+import pandas as pd
+
+def user_activity(activity: pd.DataFrame) -> pd.DataFrame:
+    df = activity.loc[
+        (activity['activity_date'] >= (pd.to_datetime('2019-07-27', format='%Y-%m-%d') - pd.Timedelta(days=29)))
+        & (activity['activity_date'] <= '2019-07-27')
+    ].groupby('activity_date').nunique()\
+    .reset_index()\
+    .rename(columns={'activity_date':'day', 'user_id': 'active_users'})
+    return df.iloc[:, :2]
 
 
+def user_activity(activity: pd.DataFrame) -> pd.DataFrame:
+
+    return (activity[activity
+                    .activity_date.between("2019-06-28",
+                                           "2019-07-27")]
+
+                    .rename(columns = {'activity_date': 'day',
+                                       'user_id': 'active_users'})
+
+                    .groupby('day')['active_users']
+                    .nunique().reset_index())
+```
+
+#### 25. Product Sales Analysis III
+[link](https://leetcode.com/problems/product-sales-analysis-iii/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT product_id, year as first_year, SUM(quantity) as quantity, price
+FROM Sales
+WHERE (product_id, year) IN
+    (SELECT product_id, MIN(year) as year
+    FROM Sales
+    GROUP BY 1)
+GROUP BY product_id, year, price
+```
+```python3
+import pandas as pd
+
+def sales_analysis(sales: pd.DataFrame, product: pd.DataFrame) -> pd.DataFrame:
+
+    return sales.assign(first_year = sales.groupby('product_id').year.transform(min))\
+            .query("first_year == year")\
+            [['product_id','first_year','quantity','product_name']]
+```
+
+#### 26. Classes More Than 5 Students
+[link](https://leetcode.com/problems/classes-more-than-5-students/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT class
+FROM courses
+GROUP BY class
+HAVING COUNT(*) >= 5
+```
+```python3
+import pandas as pd
+
+def find_classes(courses: pd.DataFrame) -> pd.DataFrame:
+    df = courses.groupby('class').count().reset_index()
+    return df[df['student']>=5][['class']]
+```
+
+#### 27. Find Followers Count
+[link](https://leetcode.com/problems/find-followers-count/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT user_id, COUNT(user_id) followers_count
+FROM Followers
+GROUP BY 1
+ORDER BY 1
+```
+```python3
+import pandas as pd
+
+def count_followers(followers: pd.DataFrame) -> pd.DataFrame:
+    return followers.groupby('user_id').count().reset_index()\
+            .rename(columns={'follower_id':'followers_count'})\
+            .sort_values('user_id', ascending=True)
 ```
 
 #### . 
@@ -512,10 +593,7 @@ def count_unique_subjects(teacher: pd.DataFrame) -> pd.DataFrame:
 ```sql
 
 ```
-#### . 
-[link]()
-```sql
-
+```python3
 ```
 
 #### . 
@@ -523,11 +601,7 @@ def count_unique_subjects(teacher: pd.DataFrame) -> pd.DataFrame:
 ```sql
 
 ```
-
-#### . 
-[link]()
-```sql
-
+```python3
 ```
 
 #### . 
@@ -535,11 +609,7 @@ def count_unique_subjects(teacher: pd.DataFrame) -> pd.DataFrame:
 ```sql
 
 ```
-
-#### . 
-[link]()
-```sql
-
+```python3
 ```
 
 #### . 
@@ -547,11 +617,15 @@ def count_unique_subjects(teacher: pd.DataFrame) -> pd.DataFrame:
 ```sql
 
 ```
+```python3
+```
 
 #### . 
 [link]()
 ```sql
 
+```
+```python3
 ```
 
 #### . 
