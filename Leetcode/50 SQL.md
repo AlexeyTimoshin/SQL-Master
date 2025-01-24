@@ -688,23 +688,118 @@ def find_primary_department(employee: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([mask_y, mask_2.merge(employee)]).iloc[:, :2]
 ```
 
-#### . 
-[link]()
+#### 32. Triangle Judgement
+[link](https://leetcode.com/problems/triangle-judgement/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT x,y,z,
+        CASE
+        WHEN x+y>z AND z+y>x AND z+x>y THEN 'Yes'
+        ELSE 'No'
+        END as triangle
+FROM triangle
 ```
 ```python3
+import pandas as pd
+# long way
+def triangle_judgement(triangle: pd.DataFrame) -> pd.DataFrame:
+    def is_triangle(x,y,z):
+        if x+y>z:
+            if x+z>y:
+                if y+z>x:
+                    return 'Yes'
+                else:
+                    return 'No'
+            else:
+                return 'No'
+        else:
+            return 'No'
+    lst = []
+
+    for i in range(len(triangle)):
+        lst.append(is_triangle(triangle.x[i], triangle.y[i], triangle.z[i]))
+    
+    return triangle.merge(pd.DataFrame({'triangle':lst}), left_index=True, right_index=True)
+
+# через лямбду
+import pandas as pd
+
+def triangle_judgement(triangle: pd.DataFrame) -> pd.DataFrame:
+    triangle['triangle'] = triangle.apply(
+        lambda t: 'Yes' if ((t.x + t.y > t.z) & (t.y + t.z > t.x) & (t.x + t.z > t.y)) else 'No', axis=1)
+
+    return triangle
+
+# через assign
+import pandas as pd
+import numpy as np
+
+def triangle_judgement(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(triangle=np.where(df.eval("(x<y+z)&(y<x+z)&(z<x+y)"),"Yes","No"))
 ```
 
-#### . 
-[link]()
+#### 33. Consecutive Numbers
+[link](https://leetcode.com/problems/consecutive-numbers/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+# Херня а не задача
+SELECT DISTINCT L1.num as ConsecutiveNums
+FROM Logs L1, Logs L2, Logs L3
+WHERE L1.num = L2.num AND L2.num = L3.num 
+AND L1.id + 1 = L2.id AND L1.id + 2 = L3.id
 ```
-#### . 
-[link]()
-```sql
+```python3
+import pandas as pd
 
+def consecutive_numbers(logs: pd.DataFrame) -> pd.DataFrame:
+
+    logs.sort_values(['id'], inplace = True)
+
+    logs = logs[(logs.num == logs.num.shift(1)) & 
+                (logs.num == logs.num.shift(2)) & 
+                (logs.id  == logs.id.shift(1)+1) & # <-- added in the revision
+                (logs.id  == logs.id.shift(2)+2)   # <-- added in the revision
+                ].drop_duplicates('num')
+        
+    return logs.iloc[:,[1]].rename(columns = {'num':'ConsecutiveNums'})
+```
+
+#### 34. Product Price at a Given Date
+[link](https://leetcode.com/problems/product-price-at-a-given-date/?envType=study-plan-v2&envId=top-sql-50)
+
+```sql
+WITH cte1 AS (
+SELECT  DISTINCT product_id,
+        MAX(change_date) date
+FROM Products
+WHERE change_date <= '2019-08-16' 
+GROUP BY 1
+)
+
+SELECT c.product_id, p.new_price price
+FROM cte1 c
+LEFT JOIN Products p ON c.product_id = p.product_id AND c.date = p.change_date
+UNION
+SELECT product_id,  10 price
+FROM Products
+WHERE product_id NOT IN (SELECT product_id FROM cte1)
+```
+```python3
+import pandas as pd
+
+def price_at_given_date(df: pd.DataFrame) -> pd.DataFrame:
+    # создадим дф с датой <= 2019-08-16
+    df_max = df[df['change_date'] <= '2019-08-16']\
+            .rename(columns={'new_price':'price'})
+
+    # Сделаем NOT IN ко второй части дф, и получим другие товары
+    # Установим им цену и переменуем колонки
+    df_other = df[~df['product_id'].isin(df_max.product_id)]
+    df_other['new_price'] = 10
+    df_other = df_other.rename(columns={'new_price': 'price'})
+
+    # объединим дф-ы, отсортируем по дате в убывающем порядке
+    # .drop_duplicates(['product_id']) - удалит все дубликаты по id кроме первого вхождения
+    return pd.concat([df_max, df_other]).sort_values('change_date', ascending=False)\
+             .drop_duplicates(['product_id']).iloc[:, :2]
 ```
 
 #### . 
