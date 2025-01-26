@@ -875,18 +875,80 @@ def count_salary_categories(df: pd.DataFrame) -> pd.DataFrame:
 #### 37. Employees Whose Manager Left the Company
 [link](https://leetcode.com/problems/employees-whose-manager-left-the-company/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+WITH cte1 AS (
+    SELECT employee_id
+    FROM Employees
+    WHERE salary < 30000
+)
+SELECT employee_id
+FROM Employees
+WHERE employee_id IN (SELECT * FROM cte1) AND
+manager_id NOT IN (SELECT employee_id FROM Employees)
+ORDER BY 1
 
+SELECT e1.employee_id
+FROM Employees e1
+WHERE e1.salary < 30000 AND manager_id IS NOT NULL
+AND NOT EXISTS ( -- не существует работников - менеджеров employee_id 
+    SELECT 1 
+    FROM Employees e2
+    WHERE e2.employee_id = e1.manager_id
+)
+ORDER BY e1.employee_id
+```
+```python
+import pandas as pd
+
+def find_employees(df: pd.DataFrame) -> pd.DataFrame:
+    return df[(~df['manager_id'].isin(df['employee_id']))
+            & (df['salary'] < 30000)
+            & (df['manager_id'].notnull())]\
+            .sort_values('employee_id', ascending=True)\
+            .iloc[:, [0]]
 ```
 
-#### . 
-[link]()
+#### 38. Exchange Seats NB разобрать
+[link](https://leetcode.com/problems/exchange-seats/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+SELECT id,
+CASE WHEN id%2 = 0 THEN lag(student) OVER(order by id)
+     WHEN id%2 = 1 and lead(student) OVER(order by id) is null THEN student
+     ELSE lead(student) OVER(order by id)
+     END student
+FROM Seat
+```
+```python
+import pandas as pd
 
+def exchange_seats(seat: pd.DataFrame) -> pd.DataFrame:
+    temp = seat.student.copy()
+    seat.loc[(seat.id%2==1) & (seat.id != len(seat)), 'student'] = temp.shift(-1)
+    seat.loc[(seat.id%2==0), 'student'] = temp.shift(1)
+    return seat
+    
 ```
 
-#### . 
-[link]()
+#### 39. Movie Rating
+[link](https://leetcode.com/problems/movie-rating/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+-- names acsend top 1, max(count(us_id in movrat))
+-- month == 2 and year == 2020 avg(rating) 
+WITH cte AS (
+    SELECT title,rating, created_at
+    FROM MovieRating mr
+    JOIN Movies m ON mr.movie_id = m.movie_id
+    WHERE EXTRACT(year from created_at) = 2020 AND EXTRACT(month from created_at) = 2
+), t1 as (
+    SELECT user_id, COUNT(user_id) cnt
+    FROM MovieRating
+    GROUP BY user_id
+    )
+(SELECT name results
+FROM t1
+JOIN Users USING(user_id)
+WHERE cnt in (SELECT MAX(cnt) FROM t1)
+```
+```python
 
 ```
 
