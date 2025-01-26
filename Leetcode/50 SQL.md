@@ -802,20 +802,78 @@ def price_at_given_date(df: pd.DataFrame) -> pd.DataFrame:
              .drop_duplicates(['product_id']).iloc[:, :2]
 ```
 
-#### . 
-[link]()
+#### 35. Last Person to Fit in the Bus
+[link](https://leetcode.com/problems/last-person-to-fit-in-the-bus/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT person_name
+FROM
+    (SELECT person_name, MAX(weig) w
+    FROM
+        (SELECT person_name, 
+                SUM(weight) OVER(ORDER BY turn) weig,
+                turn
+        FROM Queue
+        ) t1
+    WHERE weig <= 1000 
+    GROUP BY 1
+    ORDER BY w desc
+    LIMIT 1
+    ) t2
+```
+```python3
+import pandas as pd
+# медленно, надо быстрее
+def last_passenger(df: pd.DataFrame) -> pd.DataFrame:
+    df.sort_values('turn', inplace=True)
+    df['wind_sum'] = df['weight'].cumsum()
+    return df[['person_name']][df['wind_sum']<=1000].iloc[[-1]]
 ```
 
-#### . 
-[link]()
+#### 36. Count Salary Categories
+[link](https://leetcode.com/problems/count-salary-categories/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+WITH all_ct as (
+SELECT 'Low Salary' as category
+UNION
+SELECT 'Average Salary' as category
+UNION
+SELECT 'High Salary' as category
+), 
+filt_cat as (
+SELECT account_id,
+CASE WHEN income < 20000 THEN 'Low Salary'
+     WHEN income >= 20000 and income <= 50000 THEN 'Average Salary'
+     WHEN income > 50000 THEN 'High Salary'
+     ELSE 'There is no category'
+     END as category
+FROM Accounts
+)
 
+SELECT all_ct.category, COUNT(account_id) accounts_count
+FROM all_ct
+LEFT JOIN filt_cat ON all_ct.category = filt_cat.category
+GROUP BY all_ct.category
+```
+```python
+import pandas as pd
+
+def count_salary_categories(df: pd.DataFrame) -> pd.DataFrame:
+    # Отфильтруем записи по условиям, получим булеву маску и посчитаем сумму
+    # Почему sum, а не count? sum из True сделает 1, из False 0, а count вернёт кол-во
+    # без каких либо преобразований, в то время когда нас интересует кол-во True
+    low = (df['income'] < 20000).sum()
+    avg = ((df['income'] >= 20000) & (df['income'] <= 50000)).sum()
+    hi =  (df['income'] > 50000).sum()
+    return pd.DataFrame({
+        'category' : ['Low Salary', 'Average Salary','High Salary'],
+        'accounts_count': [low, avg, hi]
+    })
 ```
 
-#### . 
-[link]()
+### SUBQUERIES
+
+#### 37. Employees Whose Manager Left the Company
+[link](https://leetcode.com/problems/employees-whose-manager-left-the-company/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
 
 ```
