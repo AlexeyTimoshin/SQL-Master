@@ -949,7 +949,22 @@ JOIN Users USING(user_id)
 WHERE cnt in (SELECT MAX(cnt) FROM t1)
 ```
 ```python
+import pandas as pd
 
+def movie_rating(mv: pd.DataFrame, us: pd.DataFrame, mr: pd.DataFrame) -> pd.DataFrame:
+    res_us = mr[['user_id', 'rating']].groupby('user_id', as_index=False)\
+                .count().rename(columns={'rating': 'counts'})
+    res_us = res_us.merge(us).sort_values(['counts', 'name'], ascending=[False, True])\
+                .head(1)
+
+    mr_res = mr[(mr['created_at'] >= '2020-02-01') & (mr['created_at'] < '2020-03-01')]
+    mr_res = mr_res[['movie_id', 'rating']].groupby('movie_id', as_index=False)\
+                .agg(avg_rat=('rating', 'mean'))
+    mr_res = mr_res.merge(mv).sort_values(['avg_rat', 'title'], ascending=[False, True])\
+                .head(1)
+    name = res_us['name']
+    cinema = mr_res['title']
+    return pd.concat([name, cinema]).to_frame().rename(columns={0: 'results'})
 ```
 
 #### . 
