@@ -967,61 +967,120 @@ def movie_rating(mv: pd.DataFrame, us: pd.DataFrame, mr: pd.DataFrame) -> pd.Dat
     return pd.concat([name, cinema]).to_frame().rename(columns={0: 'results'})
 ```
 
-#### . 
+#### 40. Restaurant Growth
+[link](https://leetcode.com/problems/restaurant-growth/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+WITH cte AS (
+    SELECT visited_on, 
+            SUM(amount) days_amount
+    FROM customer
+    GROUP BY visited_on
+    ORDER BY visited_on
+)
+SELECT  visited_on, 
+        SUM(days_amount) OVER(ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as amount,
+        ROUND( AVG(days_amount) OVER(ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) as average_amount
+FROM cte
+OFFSEt 6 -- пропускает указанное число строк (важно указать порядок, что сделано в cte)
+```
+
+```python
+import pandas as pd
+
+def restaurant_growth(df: pd.DataFrame) -> pd.DataFrame:
+    # Соритурем по дате и группируем по ней же считая сумму
+    # Делаем дату индексом и не сбрасываем её
+    df_gr = df.sort_values('visited_on').groupby('visited_on')\
+            [['amount']].sum()
+
+    # Примеяем к колонке amount ф-ю rolling с параметром '7D'
+    # т.к мы работаем с окном то среднее надо считать по 7 дням (average_amount)
+    df_gr = df_gr.assign(
+            amount = df_gr.rolling('7D').sum(), 
+            average_amount = round(df_gr.rolling('7D').sum()/7 ,2)
+            )
+
+    #т.к. оффcета нет, то фильтруем по индексам через loc и pd.DateOffset
+    return df_gr.loc[df_gr.index >= df_gr.index.min() + pd.DateOffset(6)].reset_index()               
+```
+
+#### 41. Friend Requests II: Who Has the Most Friends
+[link](https://leetcode.com/problems/friend-requests-ii-who-has-the-most-friends/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+
+```
+```python
+```
+
+#### 42. 
+[link]()
+```sql
+
+```
+```python
+```
+
+#### 43. 
+[link]()
+```sql
+
+```
+```python
+```
+
+#### 44. 
+[link]()
+```sql
+
+```
+```python
+```
+
+#### 45. 
+[link]()
+```sql
+
+```
+```python
+```
+
+#### 46. 
 [link]()
 ```sql
 
 ```
 
-#### . 
+```python
+```
+
+#### 47. 
 [link]()
 ```sql
 
 ```
-#### . 
+```python
+```
+
+#### 48. 
 [link]()
 ```sql
 
 ```
+```python
+```
 
-#### . 
+#### 49. 
 [link]()
 ```sql
 
 ```
+```python
+```
 
-#### . 
+#### 50. 
 [link]()
 ```sql
 
 ```
-
-#### . 
-[link]()
-```sql
-
-```
-
-#### . 
-[link]()
-```sql
-
-```
-
-#### . 
-[link]()
-```sql
-
-```
-
-#### . 
-[link]()
-```sql
-
-```
-
-#### . 
-[link]()
-```sql
-
+```python
 ```
