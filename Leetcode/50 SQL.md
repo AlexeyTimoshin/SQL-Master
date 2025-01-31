@@ -1007,17 +1007,53 @@ def restaurant_growth(df: pd.DataFrame) -> pd.DataFrame:
 #### 41. Friend Requests II: Who Has the Most Friends
 [link](https://leetcode.com/problems/friend-requests-ii-who-has-the-most-friends/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT id, COUNT(*) num
+FROM 
+(SELECT requester_id id
+FROM RequestAccepted
+UNION ALL
+SELECT  accepter_id id
+FROM RequestAccepted
+) t
+GROUP BY id
+ORDER BY num DESC
+LIMIT 1 
 ```
 ```python
+import pandas as pd
+
+def most_friends(df: pd.DataFrame) -> pd.DataFrame:
+    ans = pd.concat([df['requester_id'], df['accepter_id']])\
+            .value_counts()\
+            .reset_index(name='num')\
+            .rename(columns={'index': 'id'})\
+            .head(1)
+    return ans
 ```
 
-#### 42. 
-[link]()
+#### 42. Investments in 2016
+[link](https://leetcode.com/problems/investments-in-2016/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+with uniq_latlon as (
+    SELECT lat, lon
+    FROM Insurance
+    GROUP BY 1, 2
+    HAVING COUNT(*) = 1
+), 
+not_uniq_2015 as (
+    SELECT tiv_2015
+    FROM Insurance
+    GROUP BY 1
+    HAVING COUNT(*) > 1
+)
 
+SELECT ROUND(SUM(tiv_2016)::numeric, 2) tiv_2016
+FROM Insurance
+WHERE  (lat, lon) IN (SELECT * FROM uniq_latlon) 
+        AND tiv_2015 IN (SELECT * FROM not_uniq_2015)  
 ```
 ```python
+
 ```
 
 #### 43. 
