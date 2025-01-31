@@ -1053,29 +1053,71 @@ WHERE  (lat, lon) IN (SELECT * FROM uniq_latlon)
         AND tiv_2015 IN (SELECT * FROM not_uniq_2015)  
 ```
 ```python
+import pandas as pd
 
+def find_investments(df: pd.DataFrame) -> pd.DataFrame:
+    df['lat_lon'] = df.groupby(['lat', 'lon'])['pid'].transform('count')
+    df['count15'] = df.groupby('tiv_2015')['pid'].transform('count')
+    ans = df[(df['lat_lon'] == 1) & (df['count15'] > 1)][['tiv_2016']]\
+            .sum().to_frame('tiv_2016').round(2)
+    return ans
 ```
 
-#### 43. 
-[link]()
+#### 43. Department Top Three Salaries
+[link](https://leetcode.com/problems/department-top-three-salaries/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+WITH ct as (
+    SELECT * 
+    FROM
+    (SELECT  departmentId, name,
+             salary,
+             DENSE_RANK() OVER(PARTITION BY departmentId ORDER BY salary DESC) rank_
+    FROM employee)
+    WHERE rank_ in (1,2,3)
+)
 
+SELECT  d.name as "Department",
+        ct.name as "Employee",
+        salary as "Salary"
+FROM ct
+JOIN department d ON ct.departmentId = d.id
 ```
 ```python
+import pandas as pd
+
+def top_three_salaries(em: pd.DataFrame, dp: pd.DataFrame) -> pd.DataFrame:
+    em['rank'] = em.groupby('departmentId')['salary']\
+                   .rank(method='dense', ascending=False)
+    em = em[em['rank'] <= 3]
+    ans = em.merge(dp, left_on='departmentId', right_on='id')
+    ans = ans.rename(columns={'name_y': 'department', 'name_x': 'employee'})
+    return ans[['department','employee', 'salary']]
 ```
 
-#### 44. 
-[link]()
-```sql
+### STRINGS REGEX CLAUSE
 
+#### 44. Fix Names in a Table
+[link](https://leetcode.com/problems/fix-names-in-a-table/description/?envType=study-plan-v2&envId=top-sql-50)
+```sql
+SELECT user_id, 
+       CONCAT(UPPER(SUBSTRING(name, 1, 1)), LOWER(SUBSTRING(name, 2))) AS name
+FROM Users
+ORDER BY 1
 ```
 ```python
+import pandas as pd
+
+def fix_names(users: pd.DataFrame) -> pd.DataFrame:
+    return users.assign(name = users['name'].str.capitalize())\
+           .sort_values('user_id')
 ```
 
-#### 45. 
-[link]()
+#### 45. Patients With a Condition
+[link](https://leetcode.com/problems/patients-with-a-condition/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT *
+FROM patients
+WHERE conditions ~ '(^| )DIAB1'
 ```
 ```python
 ```
