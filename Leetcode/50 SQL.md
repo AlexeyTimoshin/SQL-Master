@@ -1122,43 +1122,81 @@ WHERE conditions ~ '(^| )DIAB1'
 ```python
 ```
 
-#### 46. 
-[link]()
+#### 46. Delete Duplicate Emails 
+[link](https://leetcode.com/problems/delete-duplicate-emails/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+DELETE FROM Person 
+WHERE id NOT IN    (
+    SELECT  MIN(id)
+    FROM person
+    GROUP BY email
+) 
 
 ```
 
 ```python
 ```
 
-#### 47. 
-[link]()
+#### 47. Second Highest Salary
+[link](https://leetcode.com/problems/second-highest-salary/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT COALESCE(MAX(salary), null) as SecondHighestSalary
+FROM employee
+WHERE salary < (SELECT MAX(salary) FROM employee)
 ```
 ```python
 ```
 
-#### 48. 
-[link]()
+#### 48. Group Sold Products By The Date
+[link](https://leetcode.com/problems/group-sold-products-by-the-date/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
-
+SELECT sell_date, COUNT(DISTINCT product) num_sold,
+        STRING_AGG(DISTINCT product, ',' ORDER BY product) products 
+FROM Activities
+GROUP BY sell_date
+ORDER BY sell_date
 ```
 ```python
 ```
 
-#### 49. 
-[link]()
+#### 49. List the Products Ordered in a Period
+[link](https://leetcode.com/problems/list-the-products-ordered-in-a-period/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+WITH ct_ord AS (
+    SELECT *
+    FROM orders
+    WHERE order_date BETWEEN '2020-02-01' AND '2020-02-29'    
+)
 
+SELECT p.product_name, SUM(unit) as unit
+FROM ct_ord o
+JOIN products p USING(product_id)
+GROUP BY 1
+HAVING SUM(unit) >= 100
 ```
 ```python
 ```
 
-#### 50. 
+#### 50. Find Users With Valid E-Mails
 [link]()
 ```sql
+/*
+We use the tilde(~) operator as opposed to LIKE, as it's far more powerful.
 
+^ means start with.
+Then we define a set of characters to match with the brackets [].
+Within them we put two ranges: a-z and A-Z, with a + after it to ensure this character matches at least once.
+Then another set, [a-zA-Z0-9_.-]* to match 0 or more times (via the asterisk at the end).
+Then finally we enforce @leetcode.com at the end. Putting the dollar ($) will tell the engine to match
+only emails that end exactly like this.
+Important to notice here that the dot needs to be escaped (with a backslash \ in front of it), otherwise the
+regex engine will interpret it as "match any character", i.e. not putting it would make it match emails
+with leetcode[place any character here]com, such as leetcodeAcom or leetcode_com.
+*/
+
+SELECT *
+FROM Users
+WHERE mail ~ '^[a-zA-Z]+[a-zA-Z0-9_.-]*@leetcode\.com$'
 ```
 ```python
 ```
