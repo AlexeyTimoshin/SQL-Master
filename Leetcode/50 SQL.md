@@ -7,6 +7,14 @@ SELECT product_id
 FROM Products
 WHERE low_fats = 'Y' AND recyclable = 'Y'
 ```
+```python
+import pandas as pd
+
+def find_products(products: pd.DataFrame) -> pd.DataFrame:
+    res = products[(products['low_fats'] == 'Y') & (products['recyclable'] == 'Y')]
+    return res[['product_id']]
+```
+
 
 #### 2. Find Customer Referee
 [link](https://leetcode.com/problems/find-customer-referee/?envType=study-plan-v2&envId=top-sql-50)
@@ -15,6 +23,13 @@ SELECT name
 FROM Customer
 WHERE referee_id IS NULL OR referee_id != 2 
 ```
+```python
+import pandas as pd
+
+def find_customer_referee(customer: pd.DataFrame) -> pd.DataFrame:
+    res = customer[(customer['referee_id'].isnull()) | (customer['referee_id'] != 2)]
+    return res[['name']]
+```
 
 #### 3. Big Countries
 [link](https://leetcode.com/problems/big-countries/?envType=study-plan-v2&envId=top-sql-50)
@@ -22,6 +37,13 @@ WHERE referee_id IS NULL OR referee_id != 2
 SELECT name, population, area 
 FROM World 
 WHERE area >= 3000000 OR population >= 25000000
+```
+```python
+import pandas as pd
+
+def big_countries(world: pd.DataFrame) -> pd.DataFrame:
+    res = world[(world['area'] >= 3000000) | (world['population'] >= 25000000)]
+    return res[['name', 'population', 'area']]
 ```
 
 #### 4. Article Views I
@@ -32,6 +54,23 @@ FROM Views
 WHERE author_id = viewer_id
 ORDER BY 1
 ```
+```python
+import pandas as pd
+
+def article_views(views: pd.DataFrame) -> pd.DataFrame:
+    res =  views[views['author_id'] == views['viewer_id']]
+    res = res['author_id'].unique()
+    res = sorted(res)
+    return pd.DataFrame({"id": res})
+
+def article_views(views: pd.DataFrame) -> pd.DataFrame:
+    res =  views[views['author_id'] == views['viewer_id']][['author_id']]\
+            .drop_duplicates()\
+            .sort_values('author_id')\
+            .rename(columns={'author_id': 'id'})
+
+    return res
+```
 
 #### 5. Invalid Tweets
 [link](https://leetcode.com/problems/invalid-tweets/description/?envType=study-plan-v2&envId=top-sql-50)
@@ -39,6 +78,13 @@ ORDER BY 1
 SELECT tweet_id
 FROM Tweets
 WHERE char_length(content) > 15
+```
+```python
+import pandas as pd
+
+def invalid_tweets(tweets: pd.DataFrame) -> pd.DataFrame:
+    inv = tweets[tweets['content'].str.len() > 15]
+    return inv[['tweet_id']]
 ```
 
 ### BASIC JOIN
