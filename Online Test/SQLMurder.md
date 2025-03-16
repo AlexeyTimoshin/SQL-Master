@@ -42,12 +42,16 @@ The man got into a car with a plate that included "H42W".
 last week on January the 9th.  
 
 ```sql
-SELECT id, age, gender, plate_number
+SELECT p.id, p.name
+FROM person p
+JOIN 
+(SELECT id, age, gender, plate_number
 FROM drivers_license
-WHERE plate_number LIKE '%H42W%' and gender = 'male'           
+WHERE plate_number LIKE '%H42W%' and gender = 'male') as t2
+ON p.license_id = t2.id
 ```
-423327	30	male	0H42W2  
-664760	21	male	4H42WR  
+51739 Tushar Chandra  
+67318 Jeremy Bowers  
 
 ```sql
 SELECT check_in_date, id, person_id
@@ -56,25 +60,35 @@ JOIN get_fit_now_member getnow ON getcheck.membership_id = getnow.id
 WHERE check_in_date = '20180109' and membership_status = 'gold' 
 	    and id LIKE '48Z%'
 ```
-20180109	48Z7A	28819
-20180109	48Z55	67318
+48Z7A 28819  
+48Z55 67318  
 
-## Кто то врёт, ошибается заблуждается. Хм.  
-
-```sql
-```
+Is it Jeremy?  
 
 ```sql
+INSERT INTO solution VALUES (1, 'Jeremy Bowers');
+SELECT value FROM solution;
 ```
+Congrats, you found the murderer! But wait, there's more... If you think you're up for a challenge,  
+try querying the interview transcript of the murderer to find the real villain behind this crime.  
 
 ```sql
+SELECT *
+FROM interview
+WHERE person_id = 67318
 ```
 
-```sql
-```
+I was hired by a woman with a lot of money. I don't know her name but I know she's around 5'5" (65") or 5'7" (67").  
+She has red hair and she drives a Tesla Model S. I know that she attended the SQL Symphony Concert 3 times in December 2017.  
 
 ```sql
+SELECT p.id, name
+FROM person p 
+JOIN drivers_license dl ON p.license_id = dl.id
+JOIN facebook_event_checkin fec on p.id = person_id
+WHERE hair_color = 'red' and height > 65 and height < 67
+	  and car_make = 'Tesla' and car_model = 'Model S'
+	  and event_name LIKE 'SQL Symphony%' and date LIKE '201712%'
 ```
-
-```sql
-```
+Congrats, you found the brains behind the murder! Everyone in SQL City hails you as the greatest SQL detective of all time.  
+Time to break out the champagne!  
