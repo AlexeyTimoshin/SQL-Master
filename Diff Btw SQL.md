@@ -1,5 +1,0 @@
-#### OFFSET AND LIMIT (MYSQL POSTGRESQL)
-
-OFFSET cannot be used without LIMIT
-- IN POSTGRES WE CAN, but not in MYSQL 
-
