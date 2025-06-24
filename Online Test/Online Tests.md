@@ -20,11 +20,6 @@
 > Тест на знание основ SQL. Доступно 3 уровня (начальный, средний, сложный) 
 > [https://itproger.com/test/sql](https://itproger.com/test/sql)  
 
-### Учебник
-
-> Структурированный язык запросов (SQL), Учебное пособие, В.  
-> [http://citforum.ru/database/sql_kg/index.shtml](http://citforum.ru/database/sql_kg/index.shtml)  
-
 ### TEST SQL
 
 > SQL Online Test  
@@ -34,18 +29,6 @@
 
 > Let's play sql online test or quiz that will help you to clear your concepts and will prepare you for the interviews  
 > [https://www.javatpoint.com/sql-quiz](https://www.javatpoint.com/sql-quiz)  
-
-> Более 250 бесплатных курсов и ресурсов по аналитике  
-> [https://habr.com/ru/articles/806753/](https://habr.com/ru/articles/806753/)  
-
-> Четыре частых вопроса по SQL джуну-аналитику и три задачи на собеседовании. Часть 1  
-> [https://habr.com/ru/companies/otus/articles/811169/](https://habr.com/ru/companies/otus/articles/811169/)  
-
-### **Осень 2021 Карьерный Цех**
-
-[2 конкурс](https://app.careerpath.tech/contest_inside/1631727068357x533886067160645600?_gl=1*sk9ytm*_ga*MjAyODI0NTc4Ny4xNjg3ODU5NzQ1*_ga_FBNTSWWJZ9*MTY4ODM3MjEyOS40LjEuMTY4ODM3MjQ5MC4yNS4wLjA).
-
-> [https://platform.stratascratch.com/coding?code_type=1&job_positions=4](https://platform.stratascratch.com/coding?code_type=1&job_positions=4)  
 
 ### TEST SQL
 
