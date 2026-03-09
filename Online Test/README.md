@@ -24,8 +24,4 @@ https://itproger.com/test/sql
 
 ### TEST SQL
 
-https://www.tutorialspoint.com/sql/sql_online_test.htm    
-
-### TEST SQL
-
-https://tests4geeks.com/link-builder/single?ts=postgresql
+https://www.tutorialspoint.com/sql/sql_online_test.htm  
