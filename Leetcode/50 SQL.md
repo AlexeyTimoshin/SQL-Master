@@ -109,7 +109,7 @@ LEFT JOIN Product p ON p.product_id = s.product_id
 import pandas as pd
 
 def sales_analysis(sales: pd.DataFrame, product: pd.DataFrame) -> pd.DataFrame:
-    df = pd.merge(product, sales, how='left', on='product_id')..dropna()
+    df = pd.merge(product, sales, how='left', on='product_id').dropna()
     return df[['product_name', 'year', 'price']]
 ```
 
