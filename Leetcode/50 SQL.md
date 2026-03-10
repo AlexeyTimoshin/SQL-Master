@@ -105,6 +105,14 @@ FROM Sales s
 LEFT JOIN Product p ON p.product_id = s.product_id
 ```
 
+```python
+import pandas as pd
+
+def sales_analysis(sales: pd.DataFrame, product: pd.DataFrame) -> pd.DataFrame:
+    df = pd.merge(product, sales, how='left', on='product_id')..dropna()
+    return df[['product_name', 'year', 'price']]
+```
+
 #### 8.Customer Who Visited but Did Not Make Any Transactions
 [link](https://leetcode.com/problems/customer-who-visited-but-did-not-make-any-transactions/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
