@@ -251,6 +251,7 @@ def students_and_examinations(students: pd.DataFrame, subjects: pd.DataFrame, ex
 #### 13. Managers with at Least 5 Direct Reports
 [link](https://leetcode.com/problems/managers-with-at-least-5-direct-reports/description/?envType=study-plan-v2&envId=top-sql-50)
 ```sql
+-- 1 
 SELECT e1.name
 FROM Employee e1
 JOIN  (
@@ -261,6 +262,7 @@ JOIN  (
         ) e2
 ON e1.id = e2.managerId
 
+-- 2
 SELECT e.name
 FROM Employee AS e 
 INNER JOIN Employee AS m ON e.id = m.managerId 
