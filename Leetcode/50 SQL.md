@@ -279,6 +279,17 @@ def find_managers(employee: pd.DataFrame) -> pd.DataFrame:
     empMan = resMan.merge(employee[['id', 'name']], how='inner', left_on='managerId',
                         right_on='id')
     return empMan[['name']]
+
+
+def find_managers(employee: pd.DataFrame) -> pd.DataFrame:
+    df = employee.merge(employee, how='inner', left_on='id',
+                    right_on='managerId')\
+                    .groupby(['id_x', 'name_x'], dropna=False)\
+                    .agg({'managerId_y': 'count'})\
+                    .reset_index()\
+                    .rename(columns={'name_x': 'name'})
+        
+    return df[df['managerId_y']>=5][['name']]
 ```
 
 #### 14. Confirmation Rate
