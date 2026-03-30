@@ -364,34 +364,30 @@ GROUP BY product_id
 import pandas as pd
 
 def average_selling_price(prices: pd.DataFrame, units_sold: pd.DataFrame) -> pd.DataFrame:
+    
+    # сортируем чтобы потом удобнее смержить
     prices.sort_values('start_date', inplace=True)
     units_sold.sort_values('purchase_date', inplace=True)
+    
+    # мёрж, порядок важен
+    price_units = pd.merge_asof(units_sold, prices, by='product_id', 
+                                left_on = 'purchase_date', right_on='start_date')
+    
+    # создаем расчетную колонку взвешенного среднего
+    price_units['total'] = price_units['price'] * price_units['units']
+    grouped = price_units.groupby('product_id').agg({'total': 'sum', 'units': 'sum'})
+    grouped['average_price'] = (grouped['total'] / grouped['units']).round(2)
 
-    # merges on matching `by` values, then latest `right_on` <= `left_on`
-    soldWithPrices = pd.merge_asof(units_sold, prices, by='product_id', left_on='purchase_date', right_on='start_date')
+    # после аггрегации имеем сериес, который нужно перевести в датафрейм
+    ans1 = grouped[['average_price']].reset_index()
 
-    ## In theory you should do this, but doesn't seem necessary to pass all test cases
-    # badprice = soldWithPrices['end_date'] < soldWithPrices['purchase_date']
-    # soldWithPrices.loc[badprice, 'price'] = 0.0
-    # soldWithPrices.fillna({'price': 0.0}, inplace=True)
+    # находим товары с 0 продаж
+    priceIds = set(prices['product_id'])
+    soldIds = set(units_sold['product_id'])
+    diff = priceIds.difference(soldIds)
+    zero_sold = pd.DataFrame({'product_id': list(diff), 'average_price': [0]*len(diff)})
 
-    def weighted_mean(df, value, weight):
-        vs = df[value]
-        ws = df[weight]
-
-        return (vs*ws).sum() / ws.sum()
-
-    avgPxSeries = soldWithPrices.groupby('product_id').apply(weighted_mean, 'price', 'units')
-
-    main = avgPxSeries.round(2).rename('average_price').reset_index()
-
-    # for some products we have a price but no sales, for whatever reason LC demands we return zero avg price
-    priceIds = set(prices['product_id'].unique())
-    soldIds = set(units_sold['product_id'].unique())
-    missingIds = priceIds.difference(soldIds)
-    fill = pd.DataFrame({'product_id': list(missingIds), 'average_price': [0]*len(missingIds)})
-
-    return pd.concat([main, fill])
+    return pd.concat([ans1, zero_sold])
 ```
 
 #### 17. Project Employees I
